@@ -252,8 +252,8 @@
 			background: #f00;
 
 			img {
-				width: 48px;
-				height: 48px;
+				width: 70px;
+				height: 70px;
 			}
 		}
 
@@ -561,6 +561,9 @@
 			color: rgba(255, 255, 255, 0.5);
 			line-height: 1.25em;
 			margin: 0.5em 0 0 0;
+			width: 180px;
+			float: right;
+			text-align: left;
 		}
 
 		.image {
