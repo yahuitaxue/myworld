@@ -30,7 +30,7 @@
 # you will see them accessed via {{ site.title }}, {{ site.email }}, and so on.
 # You can create any custom variable you would like, and they will be accessible
 # in the templates via {{ site.myvariable }}.
-title: 烟花绚烂夺目只是瞬间，月光静默无痕却能永恒
+title: 亚辉-踏雪
 subtitle: 配不上自己的野心，辜负了所受的苦难。
 description: >- # this means to ignore newlines until "baseurl:"
   配不上自己的野心，辜负了所受的苦难。
