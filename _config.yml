@@ -45,7 +45,7 @@ url: "/myworld" # the base hostname & protocol for your site
 
 # Social settings
 facebook_url:
-github_url:https://github.com/yahuitaxue
+github_url: https://github.com/yahuitaxue
 googleplus_url:
 instagram_url:
 linkedin_url:
