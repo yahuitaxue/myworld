@@ -1,6 +1,6 @@
 ---
-title: Mysqli
-author: yahui
+title: Mysqli常用逻辑
+author: Yahui
 layout: post
 ---
 
@@ -42,7 +42,7 @@ if($result1 && $res1 >0 && $result2 && $res2 >0){
 
 }
 
-////////////////////////////////////////////////////////////////////////////
+<hr/>
 
 Mysqli 多查询
 

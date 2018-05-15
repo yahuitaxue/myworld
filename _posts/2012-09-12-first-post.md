@@ -1,14 +1,70 @@
 ---
-title: First Post
-author: Chris
+title: PHP功能强大函数
+author: Yahui
 layout: post
 ---
-Lorem ipsum dolor sit amet, iusto ridens dictas te sed. Error latine vis et. Ex cum munere definitiones, ne quas debitis contentiones cum, epicurei constituam ea sit. Dicant aeterno dolorum ex eum, qui everti iisque consectetuer ea! Duo in falli similique, nec tritani accusam te. Enim sapientem intellegat te pri, nam at atqui accumsan vituperata.
 
-Sed id graeci feugiat. No meis summo consequat vel! Albucius phaedrum omittantur eos an, ex sit lorem possim perpetua. Usu et sumo posidonium, ut qui dicat sapientem tincidunt, et has consul oporteat torquatos! In qui fabulas facilisis, justo nonumes an his, quo vidisse nusquam facilisis no. Eam iriure mediocrem suavitate an?
+接收参数过滤函数使用filter_input();
 
-Quo te solum malorum prompta, porro oblique senserit cum et! Pro wisi cetero periculis ei, nam ullum dicit accusam ne, ad quo apeirian principes dissentiunt. An mea mucius vocent iisque? Vel eu altera consetetur, clita perfecto mea ad. Eos in vero ullum regione, ei veniam disputando pro, nam et iuvaret detracto voluptua.
+filter_input(input_type, variable, filter, options)	从脚本外部获取输入，并进行过滤。
 
-Ad tritani deleniti sit, ne per ubique habemus singulis. Pro at integre alienum mediocritatem, mea ad libris adipisci necessitatibus, nostro constituam sit te. Recusabo oportere et mea, case minimum deleniti no quo, deseruisse conclusionemque vis te. Nam ex iudicabit constituam accommodare, dicam singulis ex eos! Eu mea viderer ceteros repudiandae, id erat voluptatum mea, ut consul omittam convenire quo. Id justo ipsum mei, modus contentiones per et! At mel omnium lucilius instructior, vel quando graeco in, eos docendi periculis eloquentiam ut.
+参数说明：
 
-Eam habemus aliquando ut. Id idque virtute antiopam duo, et idque falli incorrupte eos, in sea omnium instructior. Mei ex nostrud moderatius cotidieque, cu sea partiendo euripidis, eam no tollit doming! Has ne facilisi vulputate, aliquando disputationi mel eu. Ex pri diceret delectus intellegam, regione definiebas pro ex.
+input_type  必需。规定输入类型。参见上面的列表中可能的类型。
+
+INPUT_GET
+
+INPUT_POST
+
+INPUT_COOKIE
+
+INPUT_ENV
+
+INPUT_SERVER
+
+INPUT_SESSION (Not yet implemented)
+
+INPUT_REQUEST (Not yet implemented)
+
+variable    规定要过滤的变量。
+
+filter  可选。规定要使用的过滤器的 ID。默认是 FILTER_SANITIZE_STRING。
+
+FILTER_CALLBACK	调用用户自定义函数来过滤数据。
+FILTER_SANITIZE_STRING	去除标签，去除或编码特殊字符。
+FILTER_SANITIZE_STRIPPED	"string" 过滤器的别名。
+FILTER_SANITIZE_ENCODED	URL-encode 字符串，去除或编码特殊字符。
+FILTER_SANITIZE_SPECIAL_CHARS	HTML 转义字符 '"<>& 以及 ASCII 值小于 32 的字符。
+FILTER_SANITIZE_EMAIL	删除所有字符，除了字母、数字以及 !#$%&'*+-/=?^_`{|}~@.[]
+FILTER_SANITIZE_URL	删除所有字符，除了字母、数字以及 $-_.+!*'(),{}|\\^~[]`<>#%";/?:@&=
+FILTER_SANITIZE_NUMBER_INT	删除所有字符，除了数字和 +-
+FILTER_SANITIZE_NUMBER_FLOAT	删除所有字符，除了数字、+- 以及 .,eE。
+FILTER_SANITIZE_MAGIC_QUOTES	应用 addslashes()。
+FILTER_UNSAFE_RAW	不进行任何过滤，去除或编码特殊字符。
+FILTER_VALIDATE_INT	在指定的范围以整数验证值。
+FILTER_VALIDATE_BOOLEAN	如果是 "1", "true", "on" 以及 "yes"，则返回 true，如果是 "0", "false", "off", "no" 以及 ""，则返回 false。否则返回 NULL。
+FILTER_VALIDATE_FLOAT	以浮点数验证值。
+FILTER_VALIDATE_REGEXP	根据 regexp，兼容 Perl 的正则表达式来验证值。
+FILTER_VALIDATE_URL	把值作为 URL 来验证。
+FILTER_VALIDATE_EMAIL	把值作为 e-mail 来验证。
+FILTER_VALIDATE_IP	把值作为 IP 地址来验证。
+
+options 规定包含标志/选项的数组。检查每个过滤器可能的标志和选项。
+
+<hr/>
+
+filter_input_array()	从脚本外部获取多项输入，并进行过滤。
+
+参数说明：
+
+array	必需。规定带有字符串键的数组，包含要过滤的数据。
+
+args    可选。规定过滤器参数数组。
+
+例：
+
+$arr = array("name" => "peter griffin","age" => "41","email" => "peter@example.com",);
+
+$filters = array("name" => array("filter"=>FILTER_CALLBACK,"flags"=>FILTER_FORCE_ARRAY,"options"=>"ucwords"),"age" => array("filter"=>FILTER_VALIDATE_INT,"options"=>array("min_range"=>1,"max_range"=>120)),"email"=> FILTER_VALIDATE_EMAIL,);
+
+print_r(filter_var_array($arr, $filters));
