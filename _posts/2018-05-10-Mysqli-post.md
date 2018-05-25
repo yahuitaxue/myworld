@@ -57,3 +57,7 @@ $obj->next_result();
 $aa = $obj->store_result();
 
 var_dump($aa->fetch_all(MYSQLI_ASSOC));
+
+<hr/>
+
+DELIMITER $$ 声明结束符为双$符,便于用在定义存储过程(声明：PROCEDURE 调用 CALL)分号冲突
