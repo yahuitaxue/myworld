@@ -1,5 +1,5 @@
 ---
-title: Second Post
+title: PHPEmail
 author: Chris
 layout: post
 ---
