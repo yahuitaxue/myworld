@@ -7,7 +7,7 @@ layout: post
 
 队列生产消费模式
 
-<span class="image left"><img src="{{ 'assets/images/other/beanstalkd.png' | relative_url }}" alt="" /></span>
+<span class="image left"><img src="{{ 'assets/images/other/beanstalkd.png' | relative_url }}" alt="" /></span><hr/>
 
 beanstalkd三种模式
 
@@ -19,19 +19,19 @@ stats(beanstalk整体运行情况)
 
 $obj->stats();
 
-<span class="image left"><img src="{{ 'assets/images/other/stats.jpg' | relative_url }}" alt="" /></span>
+<span class="image left"><img src="{{ 'assets/images/other/stats.jpg' | relative_url }}" alt="" /></span><hr/>
 
 listTubes(目前正在运行的管道)
 
 $obj->listTubes();
 
-<span class="image left"><img src="{{ 'assets/images/other/listTubes.jpg' | relative_url }}" alt="" /></span>
+<span class="image left"><img src="{{ 'assets/images/other/listTubes.jpg' | relative_url }}" alt="" /></span><hr/>
 
 statsTube(当前管道信息)
 
 $obj->statsTube('newUsers');
 
-<span class="image left"><img src="{{ 'assets/images/other/statsTube.jpg' | relative_url }}" alt="" /></span>
+<span class="image left"><img src="{{ 'assets/images/other/statsTube.jpg' | relative_url }}" alt="" /></span><hr/>
 
 useTube(使用管道，如果管道不存在，则创建，如果存在，则直接使用)
 
@@ -45,7 +45,7 @@ $tube = $obj->watch('newUsers')->reserve();
 
 $obj->statsJob($tube);
 
-<span class="image left"><img src="{{ 'assets/images/other/statsJob.jpg' | relative_url }}" alt="" /></span>
+<span class="image left"><img src="{{ 'assets/images/other/statsJob.jpg' | relative_url }}" alt="" /></span><hr/>
 
 peek(根据ID来找到任务)(通过put方法增加任务的时候，返回值就是该任务的ID)
 
