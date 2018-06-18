@@ -1,0 +1,116 @@
+---
+title: QRcode生成二维码随手笔记
+author: Yahui
+layout: post
+---
+
+二维码大致分类
+
+<span class="image featured"><img src="{{ 'assets/images/other/codetype.jpg' | relative_url }}" alt="" /></span>
+
+二维码优缺点
+
+优点：
+
+1、信息容量大
+
+2、编码范围广(英文，数字，汉字.....因为是机器语言0与1)
+
+3、容错率高
+
+4、译码可靠新高
+
+5、可引入加密措施
+
+6、成本低，易制作
+
+缺点：
+
+1、手机病毒、钓鱼网站传播渠道
+
+2、信息泄密
+
+<hr/>
+
+QRcode：
+
+纠错能力
+
+1、L级：约可纠错7%的数据码字
+
+2、M级：约可纠错15%的数据码字
+
+3、Q级：约可纠错25%的数据码字
+
+4、H级：约可纠错30%的数据码字
+
+<hr/>
+
+PHP生成二维码：
+
+1、下载QRcode(phpqrcode.sourceforge.net)
+
+2、引入(include "phpqrcode/qrlib.php")
+
+3、QRcode::png('abc','test.jpg',QR_ECLEVEL_L,10,0,true)(内容,保存为文件不输出为false,等级,大小,边框,是否同时输出并保存文件);
+
+<hr/>
+
+jQuery生成二维码：
+
+
+1、下载(jeromeetienne.github.io/jquery-qrcode/)
+
+2、页面引入jquery.qrcode.min.js
+
+3、添加二维码显示标签(<div id="qrcode"></div>)
+
+4、添加jQuery代码($('#qrcode').qrcode(内容)或者$('#qrcode').qrcode({宽度,长度,内容}))
+
+<hr/>
+
+PHP生成电子名片：
+
+只是内容的修改
+
+$content = 'BEGIN:VCARD'."\n";
+
+$content .= 'VERSION:2.1'."\n";
+
+$content .= 'N:张'."\n";
+
+...
+
+$content .= 'END:VCARD';
+
+<span class="image featured"><img src="{{ 'assets/images/other/phpidcard.jpg' | relative_url }}" alt="" /></span>
+
+<hr/>
+
+PHP识别二维码(需要三个插件：imageMagick，zbar，php-zbarcode)：
+
+默认例子：(https://github.com/mkoppanen/php-zbarcode)
+
+/* Create new image object */
+
+$image = new ZBarCodeImage("test.jpg");
+
+/* Create a barcode scanner */
+
+$scanner = new ZBarCodeScanner();
+
+/* Scan the image */
+
+$barcode = $scanner->scan($image);
+
+/* Loop through possible barcodes */
+
+if (!empty($barcode)) {
+
+	foreach ($barcode as $code) {
+
+		printf("Found type %s barcode with data %s\n", $code['type'], $code['data']);
+
+	}
+
+}
