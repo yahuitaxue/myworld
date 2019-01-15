@@ -1,9 +1,10 @@
 ---
 title: Memcached的使用
 author: Yahui
-layout: post
+layout: php
 ---
 
+Memcached
 
 <pre><code>
 Memcached比Memcache多出几个方法(以下会有个别Memcache不适用)
