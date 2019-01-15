@@ -39,7 +39,7 @@ email: yanyahuipds@163.com
 avatar: assets/images/head/myworld.jpg
 
 # You'll want to customize url and baseurl for your own site:
-baseurl: "/myworld" # the subpath of your site, e.g. /blog
+baseurl: "/myworld/index" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site
 
 # Social settings
