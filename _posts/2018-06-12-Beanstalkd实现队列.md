@@ -1,9 +1,10 @@
 ---
 title: Beanstalkd随手笔记
 author: Yahui
-layout: post
+layout: php
 ---
-(beanstalkd不支持windows)
+
+(队列beanstalkd不支持windows)
 
 队列生产消费模式
 
