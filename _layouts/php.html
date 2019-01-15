@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-{%- assign _phps = site.posts | sort: 'date' | reverse -%}
+{%- assign _phps = site.phps | sort: 'date' | reverse -%}
 {%- include header.html scrolly_nav=_phps -%}
 <!-- Main -->
 <div id="main">
@@ -9,16 +9,16 @@ layout: default
 		{%- include section.html title=page.title photo=page.cover-photo photo-alt=page.cover-photo-alt auto-header=page.auto-header content=page.content -%}
 	{%- endif -%}
 	<!-- Posts List -->
-	{%- for _phps in _phps -%}
+	{%- for _php in _phps -%}
 		{%- capture _title -%}
-			<a href="{{- _phps.url | absolute_url -}}">{{- _phps.title -}}</a>
+			<a href="{{- _php.url | absolute_url -}}">{{- _php.title -}}</a>
 		{%- endcapture -%}
 		{%- capture _subtitle -%}
-			{% if _phps.author -%}{{- _phps.author }} | {% endif %}
-			{{- _phps.date | date_to_long_string -}}
+			{% if _php.author -%}{{- _php.author }} | {% endif %}
+			{{- _php.date | date_to_long_string -}}
 		{%- endcapture -%}
-		{%- capture _excerpt -%}<p>{{- _phps.excerpt | strip_html | truncatewords: 100 -}}</p>{%- endcapture -%}
-		{%- capture _link -%}<a href="{{- _phps.url | absolute_url -}}">read more</a>{%- endcapture -%}
+		{%- capture _excerpt -%}<p>{{- _php.excerpt | strip_html | truncatewords: 100 -}}</p>{%- endcapture -%}
+		{%- capture _link -%}<a href="{{- _php.url | absolute_url -}}">read more</a>{%- endcapture -%}
 		{%- assign _content = _excerpt | append: _link -%}
 		{%- include section.html title=_title subtitle=_subtitle content=_content -%}
 	{%- endfor -%}
