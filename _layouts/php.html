@@ -1,8 +1,8 @@
 ---
 layout: default
 ---
-{%- assign _phps = site.phps | sort: 'date' | reverse -%}
-{%- include header.html scrolly_nav=_phps -%}
+{%- assign _posts = site.posts | sort: 'date' | reverse -%}
+{%- include header.html scrolly_nav=_posts -%}
 <!-- Main -->
 <div id="main">
 	{%- if page.content != "" -%}
