@@ -2,6 +2,7 @@
 title: Beanstalkd随手笔记
 author: Yahui
 layout: php
+category: PHP
 ---
 
 (队列beanstalkd不支持windows)

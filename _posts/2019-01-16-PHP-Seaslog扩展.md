@@ -2,6 +2,7 @@
 title: Seaslog扩展
 author: Yahui
 layout: php
+category: PHP
 ---
 
 Seaslog扩展介绍

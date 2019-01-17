@@ -1,7 +1,8 @@
 ---
 title: Memcached的使用
 author: Yahui
-layout: php
+layout: nosql
+category: NoSQL
 ---
 
 Memcached
