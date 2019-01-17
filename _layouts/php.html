@@ -1,7 +1,6 @@
 ---
 layout: default
 ---
-{%- assign _posts = site.posts | sort: 'date' | reverse -%}
 <ul>
     {%- for category in site.categories -%}
     <li><a href="/categories/{{ category | first }}/" title="view all
@@ -9,6 +8,7 @@ posts">{{ category | first }} {{ category | last | size }}</a>
     </li>
     {%- endfor -%}
 </ul>
+{%- assign _posts = site.posts | sort: 'date' | reverse -%}
 {%- include header.html scrolly_nav=_posts -%}
 <!-- Main -->
 <div id="main">
