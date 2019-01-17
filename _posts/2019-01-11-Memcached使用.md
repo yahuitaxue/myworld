@@ -7,7 +7,7 @@ category: NoSQL
 
 Memcached
 
-<pre><code>
+<pre style="text-align: left;">
 Memcached比Memcache多出几个方法(以下会有个别Memcache不适用)
 Memcached函数整理
 public bool Memcached::add ( string $key , mixed $value [, int $expiration ] ) 
@@ -85,4 +85,4 @@ public bool Memcached::setOption ( int $option , mixed $value )
 1、不要在单机模式(项目，缓存，数据库在同一台服务器上)中使用Memcached，因为会占用很多的内存。
 2、不要只使用Memcached保存重要数据。
 3、定期查看缓存的分布状况和击中情况。
-</code></pre>
+</pre>

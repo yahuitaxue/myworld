@@ -5,10 +5,10 @@ layout: php
 category: PHP
 ---
 
-(队列beanstalkd不支持windows)
+队列生产消费模式(队列beanstalkd不支持windows)
 
-队列生产消费模式
 
+<pre style="text-align: left;">
 <span class="image featured"><img src="{{ 'assets/images/other/beanstalkd.png' | relative_url }}" alt="" /></span>
 
 beanstalkd三种模式
@@ -160,3 +160,4 @@ touch(续命)
 $obj->touch($res);
 
 <span class="image featured"><img src="{{ 'assets/images/other/costumers.jpg' | relative_url }}" alt="" /></span>
+</pre>
