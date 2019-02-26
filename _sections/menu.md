@@ -18,7 +18,7 @@ order: 1
 		</ul>
 	</p>
 </header>
-<pre style="text-align: left;white-space:pre-wrap; /* css3.0 */white-space:-moz-pre-wrap; /* Firefox */white-space:-pre-wrap; /* Opera 4-6 */white-space:-o-pre-wrap; /* Opera 7 */word-wrap:break-word;">
+<pre>
 	1,深入编程思想
 	PHP开发项目涉及到的编程思想有：面向过程编程实现，面向对象编程实现，面向切面编程思想；
 	不只是熟悉，而是要精通；
