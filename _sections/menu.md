@@ -7,20 +7,17 @@ icon: fa-comment
 order: 1
 ---
 <header>
-	<h4>分类目录</h4>
-	<p>
-		<ul style="width:54%;text-align:left">
-		    {%- for category in site.categories -%}
-			    <li>
-			    	<a href="" title="view all posts">{{ category | first }} ({{ category | last | size }})</a>
-			    </li>
-		    {%- endfor -%}
-		</ul>
-	</p>
+	<ul style="width:54%;text-align:left">
+	    {%- for category in site.categories -%}
+		    <li>
+		    	<span title="view all posts">{{ category | first }} ({{ category | last | size }})</span>
+		    </li>
+	    {%- endfor -%}
+	</ul>
 </header>
 <h4>摘自网络，对PHP或其他语言的认知</h4>
-当你学习PHP有一定的基础了，你就不会再轻而易举的说PHP很容易，很简单，两个星期学会之类的幼稚的话了。
 <pre>
+当你学习PHP有一定的基础了，你就不会再轻而易举的说PHP很容易，很简单，两个星期学会之类的幼稚的话了。
 1,深入编程思想
 PHP开发项目涉及到的编程思想有：面向过程编程实现，面向对象编程实现，面向切面编程思想。
 不只是熟悉，而是要精通。
