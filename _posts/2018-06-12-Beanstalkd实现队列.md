@@ -5,6 +5,8 @@ layout: php
 category: PHP
 ---
 
+书名：《---》
+
 队列生产消费模式(队列beanstalkd不支持windows)
 
 

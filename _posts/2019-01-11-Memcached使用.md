@@ -5,7 +5,7 @@ layout: nosql
 category: NoSQL
 ---
 
-Memcached
+书名：《---》
 
 <pre style="text-align: left;">
 Memcached比Memcache多出几个方法(以下会有个别Memcache不适用)

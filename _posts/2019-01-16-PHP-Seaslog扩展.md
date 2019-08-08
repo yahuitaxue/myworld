@@ -5,7 +5,7 @@ layout: php
 category: PHP
 ---
 
-Seaslog扩展介绍
+书名：《---》
 
 <pre style="text-align: left;">
 注：可以根据项目模块不同设置不同模块的目录，如果不初始化路径，会使用php.ini默认配置的路径
