@@ -92,4 +92,30 @@ category: PHP
 		不是指导方针,而是一个接口,规定PHP日志记录器组件可以实现的方法.
 	PSR-4:
 		自动加载器策略对开发组件和框架供其他开发者使用.
+Composer和私有仓库
+	执行composer install/update命令时,如果组件的仓库需要认证凭据,Composer会提醒你.Composer还会询问你是否把仓库的认证凭据保存在本地的auth.json文件(和composer.json文件放在同一级目录中).下面是auth.json文件的内容示例:
+		{
+			"http-basic":{
+				"example.org":{
+					"username":"your-username",
+					"password":"your-password"
+				}
+			}
+		}
+		如果不想等待Composer想你询问认证凭证,手动告诉Composer远程设备的认证凭据,可以使用:
+			composer config http-basic.example.org your-username your-password
+流
+	file://流封装协议:
+		我们使用file_get_contents(),fopen(),fwrite()和fclose()函数读写文件系统.因为PHP默认使用的流封装协议是file://.
+	php://流封装协议(编写命令行脚本的PHP使用php://流封装协议,这个的作用是与PHP脚本的标准输出和标准错误文件描述符通信):
+		php://stdin:
+			这是个只读PHP流,其中的数据来自标准输入.
+		php://stdout:
+			这个PHP流的作用是把数据写入当前的输出缓冲区.
+		php://memory:
+			这个PHP流的作用是从系统内存中读取数据,或者把数据写入系统内存.(这个PHP流的缺点是,可用内存是有限的,使用php://temp流更安全)
+		PHP://temp
+			这个PHP流的作用与php://memory类似,不过没有可用内存时,PHP会把数据写入临时文件.
+	其他流封装协议:
+		PHP的文件系统函数能在所有支持这些函数的流封装协议中使用(fopen(),fgets(),fputs(),feof()和fclose()),并非仅仅是处理文件系统中的文件.
 </pre>
