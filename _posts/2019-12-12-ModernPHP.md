@@ -118,4 +118,27 @@ Composer和私有仓库
 			这个PHP流的作用与php://memory类似,不过没有可用内存时,PHP会把数据写入临时文件.
 	其他流封装协议:
 		PHP的文件系统函数能在所有支持这些函数的流封装协议中使用(fopen(),fgets(),fputs(),feof()和fclose()),并非仅仅是处理文件系统中的文件.
+流过滤器
+	PHP内置了几个流过滤器:string.rot13,string.toupper,string.tolower和string.strip_tags.这些过滤器基本上没什么用,要使用自定义的过滤器.
+		// 创建一个持续30天的DatePeriod实例,一天一天反向向前推移
+		$dateStart = new \DateTeime();
+		$dateInterval = \DateInterval::createFromDateString('-1 daty');
+		$datePeriod = new \DatePeriod($dateStart,$dateInterval,30);
+		// 每次迭代DatePeriod实例得到DateTime实例创建日志文件的文件名
+		foreach ($datePeriod as $date) {
+			$file = 'sftp://USER:PASS@rsync.net/' . $date->format('Y-m-d') . '.log.bz2';
+			if (file_exists($file)) {
+				// 使用SFTP六封装协议打开位于rsync.net上的日志文件流资源.吧bzip2.decompression流过滤器附加在日志文件流资源上,实时解压缩bzip2格式的日志文件.
+				$handle = fopen($file, 'rb');
+				stream_filter_append($handle, 'bzip2.decompress');
+				// 使用PHP原生的文件系统函数迭代解压缩后的日志文件.
+				while(feof($handle) !== true) {
+					$line = fgets($handle);
+					// 检查各行日志,看访问的是不是指定域名,如果是,把这一行日志写入标准输出.
+					if (strpos($line, 'www.example.com') !== false) {
+						fwrite(STDOUT, $line);
+					}
+				}
+			}
+		}
 </pre>
