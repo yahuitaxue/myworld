@@ -268,5 +268,20 @@ Zend OPcache(该扩展应用于缓存操作码,PHP5.5后内置该扩展,php.ini�
 		xdebug.profiler_enable = 0(Xdebug取消自动运行,降低性能)
 		xdebug.profiler_enable_trigger = 1(可以在URL中加上XDEBUG_PROFILE=1查询参数来启动,Xdebug检测到这个参数,就会开始分析当前请求,然后生成报告)
 		xdebug.profiler_output_dir = /a/b/c/d(保存分析器生成的报告)
-XHPorf
+XHPorf(由Facebook开发,收集信息没有Xdebug多,但是消耗的系统资源较少)
+	安装
+		sudo apt-get install build-essential;
+		sudo pecl install mongo;
+		sudo pecl install xhprof-beta;
+
+		sudo yum groupinstall 'Development Tools';
+		sudo pecl isntall mongo;
+		sudo pecl install xhprof-beta;
+	添加php.ini文件
+		extension=xhprof.so
+		extension=mongo.so
+XHGUI(结合XHPorf,是Facebook开发配套的Web应用,用于查看和比较XHProf的分析结果)
+
+扩展
+	HHVM(PHP引擎,该引擎是与Zend Engine是等价的)
 </pre>
