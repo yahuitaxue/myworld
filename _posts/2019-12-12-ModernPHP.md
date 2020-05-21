@@ -141,4 +141,132 @@ Composer和私有仓库
 				}
 			}
 		}
+日志记录工具
+	Monolog(专注于记录日志)
+		1.在composer.json中加入monolog/monolog包:
+			{
+				"require":{
+					"monolog/monolog":"~1.11"
+				}
+			}
+		2.执行composer install或composer update安装这个组件
+		3.使用
+			<?php
+				// 使用Composer自动加载器
+				require 'path/to/vendor/autoload.php'
+				// 导入Monolog的命名空间
+				use Monolog\Logger;
+				use Monolog\Handler\StreamHandler;
+				use Monolog\Handler\SwiftMailerHandler;
+				// 设置Monolog提供的日志记录器
+				$log = new Logger('my-app-name');
+				// Monolog就会记录Logger::WARNING及以上等级的日志消息并写入path/to/your.log文件
+				$log->pushHandler(new StreamHandler('path/to/your.log', Logger::WARNING));
+				// 使用SwiftMailer处理程序,让它处理重要的错误
+				$transport = \Swift_SmtpTransport::newInstance('smtp.example.com', 587)
+							->setUsername('username')
+							->setPassword('password');
+				$mailer = \Swift_Mailer::newInstance($transport);
+				$message = \Swift_Message::newInstance()
+						->setSubject('Website error!')
+						->setFrom(array('aabb@example.com' => 'Yan'))
+						->setTo(array('admin@example.com'));
+				$log->pushHandler(new SwiftMailerHandler($mailer, $message, Looger::CRITICAL));
+				// 使用日志记录器
+				$log->critical('The server is on fire!');
+PHP-FPM(PHP FastCGI Process Manager) 配置文件
+	user = vagrant(拥有这个PHP-FPM进程池中子进程的系统用户)
+	group = vagrant(拥有这个PHP-FPM进程池中子进程的系统用户组)
+	listen = a/b/c/d/php-fpm.sock  /    127.0.0.1:9000(PHP-FPM进程池监听的IP地址和端口号,如果在同一台机器可以使用sock监听)
+	listen.allowed_clients = 127.0.0.1(可以向这个PHP-FPM进程池发送请求的IP地址,一个或者多个)
+	pm.max_children = 51(设置任何时间PHP-FPM进程池中最多能有多少个进程)
+	pm.start_servers = 3(PHP-FPM启动时进程池中立即可用的进程数)
+	pm.min_spare_servers = 2(PHP应用空闲时PHP-FPM进程池中可以存在的进程数量最小值)
+	pm.max_spare_servers = 4(PHP应用空闲时PHP-FPM进程池中可以存在的进程数量最大值)
+	pm.max_requests = 500(回收进程之前,PHP-FPM进程池中各个进程最多能处理的HTTP请求数量)
+	slowlog = /path/to/slowlog.log(设置日志文件的绝对路径)
+	request_slow_timeout = 3000(如果当前HTTP请求的处理时间超过指定的值,就把请求写入日志中)
+
+Nginx配置
+server {
+   	  	listen       80; // 设置nginx监听哪个端口进入的HTTP请求
+    	server_name  retail.xls.com retail.wyawds.com; // 虚拟主机的域名
+      	root /vagrant/retail/web/; // 文档根目录的路径
+      	client_max_body_size 50M; // 对这个虚拟主机来说,nginx接受HTTP请求主体长度的最大值
+      	error_log /a/b/c/d/error.log; // 错误日志
+      	access_log /a/b/c/d/access.log; // 访问日志
+      	location / { // location块是告诉nginx如何处理匹配指定URL模式的HTTP请求
+          	index  index.php index.html index.htm; // HTTP请求URI没指定文件时默认文件
+          	if ($request_uri  ~*  .*\.json.*) {
+             	rewrite ^/(.*)$ /index.php last;
+          	}
+      	}
+      	location ~ \.php$ {
+            fastcgi_pass   unix:/usr/local/php/var/run/php-fpm.sock; // 对应PHP-FPM设置监听的地址
+            fastcgi_index  index.php;
+            fastcgi_split_path_info ^(.+\.php)(.*)$;
+            fastcgi_param  PATH_INFO      $fastcgi_path_info;
+            fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;
+            fastcgi_param  PATH_TRANSLATED $document_root$fastcgi_path_info;
+            include        fastcgi_params;
+    	}
+	}
+
+内存:
+	1.总共能分配给PHP多少内存
+	2.单个PHP进程平均消耗内存(5~20M),如果处理文件上传,处理图像,或者运行的是内存集中型应用会高一些.
+	3.内存能负担的起多少PHP-FPM进程
+
+Zend OPcache(该扩展应用于缓存操作码,PHP5.5后内置该扩展,php.ini中可以进行配置)
+	1.Nginx接收HTTP请求给PHP-FPM.
+	2.PHP-FPM起子进程处理HTTP请求.
+	3.PHP进程找到相应的PHP脚本后,读取脚本,把PHP脚本编译成操作码(或字节码),然后执行编译得到操作码,生成响应
+	4.PHP-FPM把HTTP相应发给Nginx.
+	5.Nginx把响应发送给HTTP客户端.
+
+
+接口单元测试(PHPUnit工具,配合Xdebug)
+	安装PHPUnit(composer require --dev phpunit/phpunit)
+	更新composer
+	配置PHPUnit(phpunit.xml文件)
+	<code>
+		<?xml version="1." encoding="UTF-8"?>
+		<phpunit bootstrap="tests/bootstra.php">
+			<testsuites>
+				<testsuite name="whovian">
+					<directory suffix="Test.php">tests</directory>
+				</testsuite>
+			</testsuites>
+			<filter>
+				<whitelist>
+					<directory>src</directory>
+				</whitelist>
+			</filter>
+		</phpunit>
+	</code>
+
+使用Travis CI持续测试
+	地址:
+		https://travis-ci.org(针对公开仓库)
+		https://travis-ci.com(针对私有仓库)
+	最顶层目录中创建配置文件".travis.yml",推送到GitHub仓库(Travis CI配置文件使用YAML格式编写)
+		language:php(应用使用的语言,大小写敏感)
+		php:(Travis CI可以在多个PHP版本中运行应用的测试)
+			- 5.4
+			- 5.5
+			- 5.6
+			- hhvm
+		install:(运行应用测试之前执行的bash命令)
+			- composer install --no-dev --quiet
+		script: phpunit -c phpunit.xml --coverage-text(运行应用测试的bash命令)
+	每次把代码push到GitHub仓库中,就会自动运行应用的测试,生成结果.
+
+分析器
+	Xdebug扩展
+		安装:sudo apt-get install php5-xdebug / sudo yum -y --enablerepo=epel,remi,remi-php56 install php-xdebug
+	配置
+		xdebug.profiler_enable = 0(Xdebug取消自动运行,降低性能)
+		xdebug.profiler_enable_trigger = 1(可以在URL中加上XDEBUG_PROFILE=1查询参数来启动,Xdebug检测到这个参数,就会开始分析当前请求,然后生成报告)
+		xdebug.profiler_output_dir = /a/b/c/d(保存分析器生成的报告)
+XHPorf
 </pre>
