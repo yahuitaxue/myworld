@@ -93,4 +93,54 @@ category: Linux
     cat /etc/passwd | tr '[a-z]' '[A-Z]'
 30.进程的观察 ps,top
 31.终止进程 kill/killall
+
+Shell(弱类型编程语言)
+    #!/bin/bash
+    echo "Hello World";
+    1.Shell脚本永远以#!开头,这是脚本的开始,后面的/bin/bash指明解释器的具体位置
+    2.脚本中所有以"#"开头都是备注.
+    3.执行脚本有两种方式
+        1.bash HelloWorld.d(这种方式的话,第一行就可以省去了)
+        2../HelloWorld.d
+    4.执行程序:'.'(点号)
+        点号用于执行某个脚本,甚至脚本没有可执行权限也可以运行.
+        与点号类似,source命令也可以读取并在当前环境中执行脚本,同事还可返回脚本中最后一个命令的返回状态
+    5.别名:alias
+        alias myOrders = 'shutdown -h now'
+        用于创建命令的别名,若直接输入命令,不带任何参数,则列出当前用户使用了别名的命令.(这就是为什么ll与 ls -l效果一样的原因),不过这样定义,只能在当前的Shell环境中有效,也就是说,重新登录后这个别名就消失了,为了确保永远生效,可以将该表木写到用户家目录中的.bashrc文件中.
+    6.删除别名:unalias
+    7.任务前后台切换:bg,fg,jiobs
+    8.&符号是把当前任务放入后台运行
+        tar -zcf user.tgz /user &
+    9.声明变量:declare,typeset(完全相同)
+        declare -i i_num02=1
+    10.打印字符:echo
+    11.跳出循环:break
+    12.循环控制:continue
+    13.将所跟的参数作为Shell的输入,并执行产生的命令:eval
+        declare abc='ls -l'
+        eval $abc
+    14.执行命令来取代当前的Shell:exec
+        内建命令exec并不启动新的Shell,而是用要被执行的命令替换当前的Shell进程,并且将老进程的环境清理掉,而且exec命令后的其他命令将不再执行.假设在一个Shell里面执行了exec echo "Hello",在正常的输入一个"Hello"后Shell会退出,因为这个Shell进程已被替换为仅仅执行echo命令的一个进程,执行结束自然也就退出了.一般将exec命令放到一个Shell脚本里面,由主脚本调用这个脚本,主脚本在调用子脚本执行时,当执行到exec后,该子脚本进程就被替换成相应的exec的命令.
+           find / -name "*.conf" -exec ls -l {} \;
+    15.退出Shell:exit
+    16.使变量能被子Shell识别:export
+        cat example.sh
+            #!/bin/bash
+            echo $var;
+        var=100;
+        echo $var;
+        bash example.sh(无任何输出,因为var没有定义)
+        export var=100;
+        bash example.sh
+        100
+    17.声明局部变量:local
+        该命令用于在脚本中声明局部变量,典型的用法是用于函数体内,其作用域也在生命该变量的函数体内,如果试图在函数外使用local,则会提示错误
+    18.从标准输入读取一行到变量:read
+        cat HelloWorld.d
+            #!/bin/bash
+            read abc;
+            echo "你输入的是"$abc;
+    19.定义函数返回值值:return
+    20.
 </pre>
