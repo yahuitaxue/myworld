@@ -142,5 +142,63 @@ Shell(弱类型编程语言)
             read abc;
             echo "你输入的是"$abc;
     19.定义函数返回值值:return
-    20.
+    20.向左移动位置参数:shift
+        cat HelloWorld.d
+            #!/bin/bash
+            echo "你输入的第一个参数:"$0;(./HelloWorld.d)
+            echo "你输入的第二个参数:"$1;(1)
+            echo "你输入的第三个参数:"$2;(2)
+            echo "你输入的第四个参数:"$*;(1 2 3 4 5 6)
+            echo "你输入的第五个参数:"$#;(6)
+        bash ./HelloWorld.d 1 2 3 4 5 6
+        假设脚本有A,B,C三个参数,那么$0(脚本名称)
+            $1(A)
+            $2(B)
+            $3(C)
+        脚本中进行shift以后
+            $1(B)
+            $2(C)
+    21.显示并设置进程资源限度:ulimit(ulimit -a查看)
+        使用ulimit直接调整参数,只会在当前运行时生效,重启就会还原默认值
+        可以直接修改配置文件
+            /etc/security/limits.conf
+    22.取消变量:unset
+    23.数组
+        declare -a test // 声明一个名为test的数组
+        test[0]=0
+        test[1]=1
+        test[2]=2
+        echo ${test[1]} // 1
+        echo ${test[*]} // 一整个字符串 {test[@]} // 以空格隔开的元素值 
+        echo ${test[@]:1:2} // 取出数组test中从第2个元素开始,取两个
+        declare -r / readonly 定义常量
+    24.转义:\
+        echo \$123
+    25.做运算:expr
+        expr 11 + 22 // 中间必须有空格,否则只会打印字符串
+    26.内建运算命令:declare
+        test=1+1
+        echo $test // 会被当做字符串输出1+1
+        declare -i test
+        test=1+1
+        echo $test // 2
+    27.测试结构:test
+        形式一: test expression
+        形式二: [ expression ] // []与中间的表达式必须有一个空格
+            echo $? // 如果表达式成功,返回0,否则返回非0
+            [ -e /var/log/messages ]
+            echo $? // 0
+            [ "string" != "string1" ] // 0
+            [ "$num1" -eq "$num2" ] // 1 (num1=11 num2=22)
+            [ -e /var/log/messages ] && [ "$num1" -eq "$num2" ]
+    28.if判断结构
+        if expression; then
+            command
+        fi
+        cat ./HelloWorld.d
+            #!/bin/bash
+            read sore
+            if [ "$sore" -lt 60 ]; then
+                    echo "C"
+            fi
 </pre>
