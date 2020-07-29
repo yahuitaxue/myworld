@@ -192,8 +192,12 @@ Shell(弱类型编程语言)
             [ "$num1" -eq "$num2" ] // 1 (num1=11 num2=22)
             [ -e /var/log/messages ] && [ "$num1" -eq "$num2" ]
     28.if判断结构
-        if expression; then
-            command
+        if expression1; then
+            command1
+        elseif expression2; then
+            command2
+        else
+            command3
         fi
         cat ./HelloWorld.d
             #!/bin/bash
@@ -201,4 +205,53 @@ Shell(弱类型编程语言)
             if [ "$sore" -lt 60 ]; then
                     echo "C"
             fi
+    29.case判断结构
+        case VALUE in
+            value1) command1 ;;
+            value2) command2 ;;
+        esac
+        cat ./HelloWorld.d
+            #!/bin/bash
+            case $value in
+                a) echo "a" ;;
+                b) echo "b" ;;
+                *) echo "other" ;;
+            esac
+    30.for循环
+        for VALUE in (values1 values2 values3)
+        do
+            command
+        done
+        cat ./HelloWorld.d 
+            #!/bin/bash
+            value=$@
+            for v in $value
+            do
+                echo $v
+            done
+        
+            for ((a=1;a<10;a++))
+            do
+                    value=""
+                    for ((b=1;b<$a+1;b++))
+                    do
+                            abc=$(($a*$b))
+                            value=$value$b"*"$a"="$abc" "
+                    done
+                    echo $value
+                    echo -e
+            done
+        bash ./HelloWorld.d 1 2 3 4 5
+    31.while循环
+        while expression
+        do
+            command
+        done
+    32.方法
+        function name()
+        {
+            content
+        }
+    33.引入文件
+        
 </pre>
