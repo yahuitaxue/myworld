@@ -191,7 +191,23 @@ Shell(弱类型编程语言)
             [ "string" != "string1" ] // 0
             [ "$num1" -eq "$num2" ] // 1 (num1=11 num2=22)
             [ -e /var/log/messages ] && [ "$num1" -eq "$num2" ]
+        注:
+            $n 这个程式的第n个参数值，n=1..9(0表示执行程序的名字)
+            $* 这个程式的所有参数,此选项参数可超过9个。
+            $# 这个程式的参数个数
+            $$ 这个程式的PID(脚本运行的当前进程ID号)
+            $! 执行上一个背景指令的PID(后台运行的最后一个进程的进程ID号)
+            $? 执行上一个指令的返回值 (显示最后命令的退出状态。0表示没有错误，其他任何值表明有错误)
+            $- 显示shell使用的当前选项，与set命令功能相同
+            $@ 跟$*类似，但是可以当作数组用
     28.if判断结构
+        注释:
+            -eq(equal =)
+            -ne(not equal !=)
+            -lt(less than <)
+            -le(less equal <=)
+            -gt(greater than >)
+            -ge(great equal >=)
         if expression1; then
             command1
         elseif expression2; then
@@ -253,5 +269,13 @@ Shell(弱类型编程语言)
             content
         }
     33.引入文件
-        
+        自定义函数库
+        source ./HelloWorld.d
+        _abc ./HelloWorld.d
+        if [ "0" -eq "$?" ];then
+                echo '1'
+        else
+                echo '2'
+        fi
+
 </pre>
