@@ -296,4 +296,19 @@ Shell(弱类型编程语言)
     自动化安装lnmp
     1../sh脚本 yum安装各个环境的脚本
     2.php文件负责输出页面,接收用户自定义的账号密码
+
+#!/bin/bash
+function getFile(){
+        if [ -d "$1" ]; then
+                for searchname in `ls $1`
+                do
+                        if [ -d $1 ] && [[ $1 =~ "retail" ]];then   #字符串比较需要用双[],单括号会有问题
+                                echo $1"/"$searchname
+                        else
+                                getFile $1"/"$searchname
+                        fi
+                done
+        fi
+}
+getFile $1
 </pre>
