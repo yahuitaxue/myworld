@@ -1,8 +1,8 @@
 ---
 title: MySQL内核-InnoDB存储引擎
 author: Yahui
-layout: mysql
-category: MySQL
+layout: sql
+category: SQL
 ---
 
 
