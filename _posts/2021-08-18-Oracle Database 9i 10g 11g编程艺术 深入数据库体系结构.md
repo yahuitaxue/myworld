@@ -168,5 +168,6 @@ category: SQL
 				2.TM锁(用于确保修改表的内容时,表结构不会改变)
 					如果更新了一个表,会得到这个表的一个TM锁,这样防止另一个用户在该表上执行DROP或ALTER命令,另一个用户就会得到一个(resource busy and acquire with NOWAIT specified错误)
 			2.DDL锁:保护对象结构定义
+				
 			3.内部锁和闩:保护内部数据结构,
 </pre>
