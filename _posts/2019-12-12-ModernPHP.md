@@ -9,7 +9,7 @@ category: PHP
 书名：《Modern PHP》
 
 <pre style="text-align: left;">
-命名空间:(在PHP5.3.0中引入,是按照一种虚拟的层次结构组织PHP代码,这种侧次结构类似操作系统中文件系统的目录结构)
+命名空间:(在PHP5.3.0中引入,是按照一种虚拟的层次结构组织PHP代码,这种层次结构类似操作系统中文件系统的目录结构)
 	1.在PHP文件顶部使用use关键字导入代码,并且要放在<?php标签或命名空间声明语句之后.
 	2.使用use关键字导入代码时无需在开头加上\符号,因为PHP假定导入的是完全限定的命名空间.
 	3.use关键字必须出现在全局作用域中(即不能在类或函数中),因为这个关键字在编译时使用.不过,use关键字可以在命名空间声明语句之后使用,导入其他命名空间中的代码.
@@ -31,7 +31,7 @@ category: PHP
 			use MyTrait;
 			// 这里是类的实现
 		}
-		注:PHP解释器在编译时会把性状复制粘贴到类的定义体中,但是不会处理这个操作引入的不兼容问题.如果性状假定类中有特定的属性或方法(在形状中没有定义),要确保响应的类中有对应的属性和方法.
+		注:PHP解释器在编译时会把性状复制粘贴到类的定义体中,但是不会处理这个操作引入的不兼容问题.如果性状假定类中有特定的属性或方法(在性状中没有定义),要确保相应的类中有对应的属性和方法.
 生成器:
 	PHP5.5.0引入功能,其实就是PHP函数,只不过生成器从不返回值,只产出值.其优雅体现在,每次产出一个值后,生成器的内部状态都会停顿,向生成器请求下一个值时,内部状态又会恢复,内部状态会一直在停顿和恢复之间切换,知道抵达函数定义体的末尾或遇到空的return;为止.
 	注:
@@ -42,7 +42,7 @@ category: PHP
 				return;
 			}
 			while (false === feof($handle)) {
-				field fgetcsv($handle);
+				yield fgetcsv($handle);
 			}
 			fclose($handle);
 		}
@@ -55,20 +55,15 @@ category: PHP
 匿名函数:
 	没有名称的函数,匿名函数可以赋值给比那辆,还能像其他任何PHP对象那样传递.
 (理论上讲,闭包和匿名函数是不同的概念,不过PHP将其视作相同的概念.)
-	$a = function ($name){
-		return sprintf('abc %s', $name);
-	};
-	var_dump($a); 
-	// object(Closure)#1 (1) { ["parameter"]=> array(1) { ["$name"]=> string(10) "" } }
-	echo $a('轨迹');
-	使用use关键字附加闭包的状态:
-		function enclosePerson($name){
-			function ($doCommand) use ($name) {
-				return spritf('%s is hahaha %s', $name, $doCommand);
-			}
-		}
-		$clay = enclosePerson('Clay');
-		echo $clay(get me sweet tea!);
+	function getMoney() {
+		$rmb = 1;
+		$dollar = 6;
+		$func = function() use ($rmb) {	
+		    echo $rmb;
+		    echo $dollar; // 报错,找不到变量
+		};
+		$func();
+	}
 字节码缓存(Zend OPcache):
 	PHP是解释型语言,PHP解释器执行PHP脚本时会解析PHP脚本代码,把PHP代码编译成一系列Zend操作码,然后执行字节码.
 	执行./configure命令时加上 --enable-opcache
@@ -102,7 +97,7 @@ Composer和私有仓库
 				}
 			}
 		}
-		如果不想等待Composer想你询问认证凭证,手动告诉Composer远程设备的认证凭据,可以使用:
+		如果不想等待Composer向你询问认证凭证,手动告诉Composer远程设备的认证凭据,可以使用:
 			composer config http-basic.example.org your-username your-password
 流
 	file://流封装协议:
