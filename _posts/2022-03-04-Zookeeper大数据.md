@@ -1,0 +1,139 @@
+---
+title: Zookeeper大数据
+author: Yahui
+layout: linux
+category: Linux
+---
+
+书名：《-》
+
+<pre style="text-align: left;">
+	ZAB协议
+		消息广播
+			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZab.jpg' | relative_url }}" alt="" /></span>
+		崩溃恢复
+			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZabDown.jpg' | relative_url }}" alt="" /></span>
+			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZabChoose.jpg' | relative_url }}" alt="" /></span>
+			(zxid就是指事务ID,事务ID越大表示执行的命令最多,那么数据就最全)
+			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZabReset.jpg' | relative_url }}" alt="" /></span>
+	ZooKeeper数据模型的结构与Unix文件系统很类似,整体上可以看做是一棵树,每个节点称作一个ZNode,每个ZNode默认能够存储1M的数据,每个ZNode都可以通过器路径唯一标识
+	下载
+		https://archive.apache.org/dist/
+		(通常下载的是-bin文件,不带bin的是原码文件)
+		解压并把目录拷贝到/opt目录下
+		进入ZooKeeper,解压后的配置目录(conf),复制配置文件并改名
+		cp zoo_sample.cfg zoo.cfg
+		进入bin目录,并启动服务端./zkServer.sh start
+		进入bin目录,并启动客户端./zkCli.sh
+	场景应用
+		统一命名服务,统一配置管理,统一集群管理,服务器节点动态上下线,软负载均衡等
+		统一命名服务
+			在分布式环境下,经常需要对应用/服务进行统一的命名
+		统一配置管理
+			一般要求一个集群中,所有节点的配置信息是一致的
+			对配置文件的修改,能够快速同步到各个节点上
+		统一集群管理
+			分布式环境中,实时掌握每个节点的状态是必要的
+			ZooKeeper可以实现实时监控节点状态变化
+		服务器节点动态上下线
+			客户端能实时洞察到服务上下线的状态
+		软负载均衡
+			在Zookeeper中记录每台服务器的访问数,让访问数最少的服务器去处理最新的客户端请求
+	配置文件
+		# The number of milliseconds of each tick
+		tickTime=2000 // 服务器与客户端心跳时间(单位毫秒)
+		# The number of ticks that the initial 
+		# synchronization phase can take
+		initLimit=10 // Leader与Follower连接时能容忍的最多心跳数量(10表示10*2000毫秒,超过这个时间就表示不通)
+		# The number of ticks that can pass between 
+		# sending a request and getting an acknowledgement
+		syncLimit=5 // Leader与Follower通信时能容忍的最多心跳数量(5表示5*2000毫秒,超过这个时间就表示不通)
+		# the directory where the snapshot is stored.
+		# do not use /tmp for storage, /tmp here is just 
+		# example sakes.
+		dataDir=/opt/module/zookeeper-3.5.7/zkData // 数据存放目录(首次下载没有这个目录,可手动添加)
+		# the port at which the clients will connect
+		clientPort=2181 // 客户端连接端口号
+	配置集群
+		(scp命令,复制文件到其他服务器上)
+		1.首先在配置好的zkData目录中新建文件myid(内容只有一个数值ID,表示集群中的机器号)
+		2.scp将整个目录发送到其他服务器上(因为zookeeper是解压即用,所以可这么操作)
+		3.修改其他服务器上myid文件ID
+		4.增加配置
+			server.A=B:C:D
+			server.2=hadoop102:2888:3888
+			server.3=hadoop103:2888:3888
+			server.4=hadoop104:2888:3888
+			A:是数字,表示是第几号服务器(最好与myid一致)
+			B:服务器的地址
+			C:服务器Follower与集群中Leader服务器交换信息的端口
+			D:如果集群中Leader服务器宕机,需要一个端口重新进行选举,选出一个新的Leader
+	集群选举机制
+		1.启动的时候会投自己一票,判断票数是否过半(如果过半,那么就是Leader),如果没有过半计入LOOKING状态
+		2.有新机器加入的时候,同样先投自己一票,同样判断是否过半,然后将myid发送给其他机器,其他机器发现myid比较大,就会把自己的一票给较大的myid机器
+		3.新机器收到投票再进行判断是否过半
+		以此类推,过半后确定Leader,再有新机器加入就是Follower
+	集群启动
+		bin/zkCli.sh -server hadoop102:2181(可以指定服务地址)
+	节点类型
+		1.持久(Persistent):客户端与服务器断开连接后,节点不删除
+		1.短暂(Ephemeral):客户端与服务器断开连接后,节点删除
+	创建节点
+		新增
+			create -e(创建临时节点) -s(如果加上s参数,表示创建一个带序号的节点) /hou(节点名称) "this is is is a test"(节点的值)
+			注:
+				1.如果节点路径中,如果有不存在的目录,那么就会失败
+				2.如果创建永久节点重复时,-s参数会在原来的序号上递增,而不加-s会提示已经存在不能创建
+		获取
+			get -s /hou
+		查看
+			ls /hou
+		修改
+			set同理
+		监听值的变化
+			get -w /hou // 监听只监听一次
+		监听路径的变化
+			ls -w /hou
+		删除
+			delete /hou/haha(如果节点下面还有,则会删除失败)
+		删除多个
+			deleteall /hou
+	客户端API操作
+		1.访问的是Leader
+			1.客户端访问Leader服务器进行写操作
+			2.Leader写完后立刻通知Follower写操作
+			3.Follower写完后给Leader一个ack应答,表示写操作完成
+			4.Leader判断有没有超过半数完成了写的操作
+			5.如果超过半数,则表示Leader写操作完成,那么就会给客户端一个ack机制,表示客户端的写操作完成
+			6.Leader会继续给剩余的Follower发送写操作
+			7.剩余的Follower写操作完成后给Leader相应的ack应答
+		2.访问的是Follower
+			1.客户端访问Follower服务器进行写操作
+			2.Follower将写操作转给Leader
+			3.Leader完成写操作后,同样通知Follower进行写操作
+			4.Follower完成写操作后,给Leader一个相应的ACK应答
+			5.Leader收到应答后同样进行判断有没有超过半数
+			6.如果超过,则给(2)Follower相应的ACK应答表示写操作完成
+			7.(2)Follower给客户端一个相应的ACK应答
+			8.Leader会继续给剩余的Follower发送写操作
+			9.剩余的Follower写操作完成后给Leader相应的ack应答
+	服务发现
+		(一般是创建带序号的临时节点)
+		集群中有机器上线就存一个带序号的临时节点(/servers/server1 对应的值:"IP地址:端口号")
+	分布式锁
+		1.判断路径是否存在,如不存在则创建(持久不带序号的节点)
+		2.生成新节点(临时并带序号),并判断当前目录节点数量
+		3.如果节点数量等于0(表示错误),等于1(表示当前获取到锁),大于1(表示还有其他的在获取节点的锁)
+		4.还有其他节点的前提下,对节点进行排序,判断当前节点前一个节点是否存在,如果存在则表示获取锁失败(直到上个节点不存在,则表示之前节点释放锁,当前节点获取到锁)
+	CAP理论
+		所有分布式系统不可能同时满足以下三种
+		1.一致性(C)
+			在分布式环境中,一致性是指数据在多个副本之间是否能够保持数据一致的特性,在一致性的需求下,当一个系统在数据一致的状态下执行更新操作后,应该保证系统的数据仍然处于一致的状态
+		2.可用性(A)
+			可用性是指系统的服务必须一直处于可用的状态,对于用户的每一个操作请求总是能够在有限的时间内返回结果
+		3.分区容错(P)
+			分布式系统在遇到任何网络分区故障的时候,仍然需要保证对外提供满足一致性和可用性的服务,除非是整个网络环境发生了故障
+		ZooKeeper保证的是CP
+		1.ZooKeeper不能保证每次服务请求的可用性.(在极端环境下,ZooKeeper可能会丢弃一些请求,消费者程序需要重新请求才能获得结果)
+		2.进行Leader选举时,集群是不可用的
+</pre>
