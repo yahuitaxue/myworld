@@ -804,4 +804,6 @@ helm
 				scheduler: {}
 			加入集群
 				kebuadm join master.k8s.io:6443 --token aaaaaaa --discovery-token-ca-cert-hash sha256:aaaaaaa --control-plane(--control-plane这个在Master2中加,在node节点就不用加了)
+流程
+	1.阿里云创建镜像
 </pre>
