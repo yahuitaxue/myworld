@@ -757,15 +757,49 @@ helm
 			2.配置:/etc/haproxy/haproxy.cfg
 				backend kubernetes-apiserver
 					mode		tcp
-					balance 	roundrobin
+					balance 	roundrobin // 轮询
 					server 		master01.k8s.io IP:端口(k8s端口) check
 					server 		master01.k8s.io IP:端口(k8s端口) check
+			3.启动(指定配置文件形式)
+				haproxy -f /etc/haproxy/haproxy.cfg
+			4.整体流程
+				haproxy.cfg
+					listen http_front // haproxy客户端页面
+						bind 0.0.0.0:8100
+						mod http
+						stats uri /haproxy
+						stats auth root:0000 // 页面登录的用户名密码
+					listen rabbitmq_ha //负载均衡的名字
+						bind 0.0.0.0:5600
+						server rabbit1 IP:5674 ...
+						server rabbit1 IP:5674 ...
+						server rabbit1 IP:5674 ...
+				docker(haproxy)
+					8102:8100
+					5602:5600
+				docker(rabbitMq)
+					15674:15672 // web访问端口
+					5674:5672 // 程序访问端口
+				访问(rabbitMq)
+					IP:15674
+				访问(haproxy)
+					IP:8102
 		keepalived:(两个Master网卡名称/priority(优先级)配置不一样)
 			1.下载安装:yum install -y keepalived
-			2.配置虚拟IP(隐藏实际IP):/etc/keepalived/keepalived.conf
-				virtual_ipaddress {
-					IP地址...
+			2.配置虚拟IP(隐藏实际IP):/etc/keepalived/keepalived.conf(每个haproxy都要安装keepalived,并且配置相同的虚拟IP)
+				...
+				vrrp_script chk_haproxy {
+					script "/etc/keepalived/haproxy_check.sh" // 检测haproxy状态的脚本路径
+					interval 2 // 检测时间
+					weight 2 // 如果条件成立权重+2
 				}
+				virtual_ipaddress {
+					对外暴露的虚拟IP...
+				}
+				...
+			3.启动(进入指定配置文件形式)
+				keepalievd -f /keepalievd/keepalievd.conf
+			4.这样调用rabbit只用使用虚拟IP即可(如果是内网,可以考虑使用nginx的upstream反向代理)
 		k8s:
 			安装:
 				$ mkdir /usr/local/kubernetes/manifests -p
