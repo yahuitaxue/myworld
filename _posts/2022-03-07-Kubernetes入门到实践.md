@@ -46,7 +46,7 @@ category: Linux
 		4.etcd(构建一个高可用的分布式键值(key-value)数据库)
 			存储,用于保存集群中的各种数据
 	Worker组件:
-		1.lubelet
+		1.kubelet
 			Master派到Worker节点代表,管理本机容器
 		2.kube-proxy
 			提供网络代理,负载等操作
