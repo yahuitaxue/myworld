@@ -37,25 +37,28 @@ category: Linux
 架构
 	<span class="image featured"><img src="{{ 'assets/images/other/K8S_all.jpg' | relative_url }}" alt="" /></span>
 	Master组件:(做的事情都是管理操作)
-		1.API server
-			集群统一入口,以restful方式,交给etcd存储
+		1.kube-apiserver
+			外唯一的接口，提供http/https RESTfull API，即kubernetes API。所有的请求都通过这个接口进行通信。包括认证授权、数据校验以及集群状态更新。通过apiserver将集群状态信息持久化到ETCD中。默认端口为6443
 		2.scheduler
 			做Worker节点调度(选择Worker节点应用部署)
 		3.controller-manager
 			资源协调控制(处理集群中常规后台任务,一个资源对应一个控制器(比如订单,用户等))
+			集群内部的管理控制中心，负责集群的Node，Pod副本，endpoint，namespace等的管理，当集群中的某个Node宕机，Controller Manager会及时发现此故障并快速修复，将集群恢复成预期的工作状态。
 		4.etcd(构建一个高可用的分布式键值(key-value)数据库)
-			存储,用于保存集群中的各种数据
+			一个高可用的分布式键值数据库，可用于服务发现。etcd采用raft一致性算法，基于GO语言实现。由于raft算法采用多数投票机制，所以建议采用奇数个数节点。
 	Worker组件:
 		1.kubelet
-			Master派到Worker节点代表,管理本机容器
+			是node节点的agent，当Scheduler确定pod运行在某个节点上时，会将pod的具体配置信息（image，network，volume等）发送给节点的kubelet，kubelet会根据配置信息进行创建容器，并将容器运行结果报告给Master。另外，kubelet还会周期性的向Master报告pod以及node节点的运行状态。
 		2.kube-proxy
-			提供网络代理,负载等操作
+			工作节点上的一个网络代理组件，它的作用是将发往service的流量负载均衡到正确的后端pod。kube-proxy监听API server中的service和endpoint的变化，并通过iptables或者IPVS创建不同的路由规则，以实现上述目的。
+	注
+		deployment是pod版本管理的工具 用来区分不同版本的pod 从开发者角度看,deployment顾明思意,既部署,对于完整的应用部署流程,除了运行代码(既pod)之外,需要考虑更新策略,副本数量,回滚,重启等步骤
 概念
 	1.Pod
 		最小的部署单元
 		是一组容器的集合
 		内的容器是共享网络
-		生命周期是短暂的
+		生命周期是短暂的,重启的话,原来的pod就不存在了
 	2.Controller
 		确保预期的pod副本数量(通过controller创建Pod)
 		有状态/无状态应用部署(是指如果一个节点宕机,那么这个节点上的应用需要漂移到另外的节点,那么这个漂移的节点可以是无状态(直接漂移过来就可以用),也可以是有状态(需要保持依赖存储/网络IP))
@@ -72,7 +75,7 @@ category: Linux
 	2.二进制包
 		github下载发行版的二进制包,手动部署集群
 	3.安装Docker/kubeadm/kubelet
-安装
+安装(也可参考"k8s - 随笔分类 - 许大仙" : https://www.cnblogs.com/xuweiweiwoaini/category/1869694.html)
 	1.添加yum源(/etc/yum.repos.d/kubernetes.repo)
 		[kubernetes]
 		name=Kubernetes
@@ -83,11 +86,11 @@ category: Linux
 		gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 	2.安装
 		yum install -y kubelet kubeadm kubectl
-		初始化
+		初始化（master节点）
 		kubeadm init \
-		--apiserver-advertise-address=192.168.33.10 \
-		--image-repository registry.aliyuncs.com/google_containers \
-		--kubernetes-version v1.23.4 \
+		--apiserver-advertise-address=192.168.33.10 \ // 本机IP
+		--image-repository registry.aliyuncs.com/google_containers \ // 修改镜像源
+		--kubernetes-version v1.23.4 \ // 安装的版本
 		--service-cidr=10.96.0.0/12 \
 		--pod-network-cidr=10.244.0.0/16 \
 		--ignore-preflight-errors=all // 因为虚拟机提示CPU不够,所以暂时忽略报错
@@ -97,6 +100,10 @@ category: Linux
 			rm -rf $HOME/.kube/config
 			rm -rf /etc/kubernetes/
 			然后再次初始化就可以了
+		安装后根据提示执行命令，开启集群
+			mkdir -p $HOME/.kube
+			...
+			...
 	3.Master安装完毕后会有一个加密串,然后在Worker上执行
 		kubeadm join 192.168.33.10:6443 --token glpgm5.2wesr7v4864kcorv \
         --discovery-token-ca-cert-hash sha256:231dd527a2a3279dcf290ffd0bad5684b695310a6e1b49d32e5d3b529237f63b
@@ -104,6 +111,7 @@ category: Linux
 	4.配置CNI网络插件
 		kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
 	5.测试是否安装成功
+		kubectl get nodes // 查看集群节点运行状态
 		kubectl create deployment nginx --image=nginx
 		kubectl expose deployment nginx --port=80 --type=NodePort
 		kubectl get pod,svc
@@ -123,6 +131,9 @@ kubectl语法
 	flags:指定可选参数,例如-s/-server
 	kubectl get pod pod1
 yaml文件(资源清单文件)
+	对资源管理和资源对象编排部署可以通过声明样式YAML文件来解决，也就是可以吧需要对资源对象操作编辑到文件中，通过kubectl命令使用资源清单文件就可以实现对大量的资源对象进行编排部署
+	使用
+		kubectl create -f ***.yaml
 	1.语法
 		1.通过缩进表示层级关系(不推荐使用tab键,通常使用两个空格)
 		2.字符后缩进一个空格(比如冒号,逗号)
@@ -142,7 +153,7 @@ Pod
 		3.一个Pod中容器共享网络命名空间
 			(正常情况,多个容器是通过namespace与cgroup进行进程与资源隔离)
 			Pod会默认创建一个Pause容器(也叫info容器),他会独立出IP,MAC,Port,命名空间
-			再回创建其他业务容器(此时在info容器中也会注册业务容器的信息,此时所有的业务容器就共享相同的IP,MAC,Port,命名空间...)
+			再会创建其他业务容器(此时在info容器中也会注册业务容器的信息,此时所有的业务容器就共享相同的IP,MAC,Port,命名空间...)
 		4.Pod是短暂的
 	用处
 		1.创建容器使用Docker,一个Docker对应一个容器,一个容器运行一个应用程序
@@ -182,12 +193,12 @@ Pod
 			  #(自己手动新增)       nodeSelectorTerms:
 			  #(自己手动新增)       - matchExpressions:
 			  #(自己手动新增)         - key: error
-			  #(自己手动新增)           operator: DoesNotExist //还有其他操作符In/NotIn/Gt/Lt/Exists...
+			  #(自己手动新增)           operator: DoesNotExist //还有其他操作符In/NotIn/Gt/Lt/Exists/DoesNotExists...
 			  #(自己手动新增)           values:
 			  #(自己手动新增)           - dev
 			  #(自己手动新增)           - test
 			  #(自己手动新增)     preferredDuringSchedulingIgnoredDuringExecution: // 软亲和性,约束条件可不满足,如果不满足则默认也会调度
-			  #(自己手动新增)     - weight: 1
+			  #(自己手动新增)     - weight: 1 // 权重
 			  #(自己手动新增)	       preference:
 			  #(自己手动新增)	         matchExpressions:
 			  #(自己手动新增)	         # 表示node标签存在 disk-type=ssd 或 disk-type=sas
@@ -327,6 +338,14 @@ Pod
 					NoExecute:不会调度,并且还会驱逐Node已有Pod
 			删除污点
 				kubectl taint node [node名称] key(自己取的,参考上面代码示例):污点的三个值- // 最后有一个"-"表示去掉这个污点
+			污点容忍
+				在yaml中增加,这样,即使node设置不会被调用,也有可能会被调用
+					spec:
+					  tolerations:
+					  - key: "自定义的key"
+					    operator: "Equal"
+					    value: "自定义的value"
+					    effect: "污点的三个值"
 Controller
 	与Pod的关系
 		1.Pod通过Controller实现应用的运维,比如伸缩,滚动升级...
@@ -388,6 +407,8 @@ Service
 	Pod与Service关系
 		1.根据Label和selector标签建立关联的(与Controller类似)
 	类型
+		书写形式
+			type: ClusterIP
 		1.ClusterIP
 			集群的内部使用(比如前端Pod访问后端Pod,这就属于内部访问)
 		2.NodePort
@@ -406,17 +427,17 @@ Service
 			  ports:
 			  - port: 80
 			    name: web
-			  clusterIP: None // 需要增加无头的Service
+			  clusterIP: None // 需要增加无头的Service(就是kubectl get svc显示Cluster_iP为None)
 			  selector: 
 			    app: web
 			...
 		apiVersion: apps/v1
-			kind: StatefulSet
+			kind: StatefulSet // 与Deployment类型的区别:(根据主机名(使用kubectl get nodes查看)+一定规则生成域名)(主机名称.service名称.名称空间.svc.cluster.local)
 			metadata:
 			  name: nginx-statefulset
 			...
 部署守护进程
-	就是运行在node中的pod,也可以在新加入的node中运行
+	就是运行在node中的pod,新加入的node中运行也会有这个pod
 	apiVersion: apps/v1
 		kind: DaemonSet // 守护进程模式
 		metadata:
@@ -446,7 +467,7 @@ Service
 		          path: /var/log
 		...
 job
-	一次性任务
+	一次性任务(在执行完毕后,就结束(Completed)状态)
 		apiVersion: apps/v1
 		kind: Job // 守护进程模式
 		metadata:
@@ -463,7 +484,7 @@ job
 	   	(打印PI的值,可以使用kebuctl log pi-qpgff(pods的名字)查看日志,也就是打印输出的内容)
 	定时任务
 		apiVersion: apps/v1
-		kind: CronJob // 定时任务模式
+		kind: CronJob // 定时任务模式(每次执行完毕,都会生成一个pods,并且是(Completed)状态)
 		metadata:
 		  name: hello
 		spec:
@@ -482,10 +503,11 @@ job
 	              restartPolicy: OnFailure // 重启策略
 Secret
 	作用
-		加密数据存在etcd中,让Pod容器以挂在Volume方式进行访问
+		加密数据存在etcd中,让Pod容器以挂载Volume方式进行访问
 	场景
 		凭证(就是以环境变量的凡是来供其他Pod使用)
 	示例
+		// 定义全局变量
 		apiVersion: apps/v1
 		kind: Secret
 		metadata:
@@ -495,6 +517,7 @@ Secret
 		  username: ABC(base64后的值)
 		  password: DEF(base64后的值)
 
+		// 在其他pod中使用已经定义的变量
 		apiVersion: apps/v1
 		kind: Pod
 		metadata:
@@ -515,6 +538,26 @@ Secret
                   name: mysecret
                   key: password // 对应上面的信息
 		(这样在这个pod中都可以使用环境变量USER_NAME与PASSWORD,也就是Secret的pod定义的值)
+
+		// 通过volume的方式
+		apiVersion: apps/v1
+		kind: Pod
+		metadata:
+		  name: mypod
+		spec:
+          containers:
+          - name: nginx
+            image: nginx
+            volumeMounts:
+            - name: foo
+              mountPath: "/etc/foo"
+              readOnly: true
+          volumes:
+          - name: foo
+            secret:
+              secretName: mysecret
+        (这种形式,就会在"/etc/foo"目录中新建两个文件username与password内容是对应的值)
+
 	(建立好Pod后,在其他Pod中,可以绑定变量,并声明为环境变量使用)
 ConfigMap
 	作用
@@ -522,10 +565,9 @@ ConfigMap
 	场景
 		配置文件
 	实例
+		kubectl create configmap redis-config(名称) --from-file=redis.properties(这个是配置文件名称,内容就是简单键值对:host=123)
+		kubectl describe cm(就是configmap的缩写) redis-config
 		通过容器卷形式
-			kubectl create configmap redis-config(名称) --from-file=redis.properties(这个是配置文件名称,内容就是简单键值对:host=123)
-			kubectl describe cm(就是configmap的缩写) redis-config
-
 			apiVersion: apps/v1
 			kind: Pod
 			metadata:
@@ -541,8 +583,9 @@ ConfigMap
 	          volumes:
 	            - name: config-volume
 	              configMap:
-	                name: redis-config
+	                name: redis-config // 这个是configMap的名字
 	          restartPolicy: Never
+
     	通过变量形式
     		apiVersion: apps/v1
 			kind: ConfigMap
@@ -577,6 +620,8 @@ ConfigMap
 	                  key: spacial.type // 对应上面的信息
 	          restartPolicy: Never
 安全机制
+	基于角色的访问控制(RBAC)
+	<span class="image featured"><img src="{{ 'assets/images/other/k8s_role.jpg' | relative_url }}" alt="" /></span>
 	1.传输安全
 		对外不暴露端口号(8080),只能内部访问,对外使用端口6443
 		1.认证
@@ -617,6 +662,327 @@ ConfigMap
 			2.基于角色访问控制
 		3.准入控制
 			1.就是准入控制器的列表,如果有则请求内容哪个,如果没有则拒绝
+Ingress
+	普通是通过NodePort来实现对外暴露端口,然后通过IP:端口进行访问
+	(每个节点上都会起到端口,在访问的时候通过热和节点IP:端口实现访问)
+	ingress作为统一入口,有service关联一组pod
+	工作流程
+		ingress入口->service(根据不同的域名去找不同的pod)->pod
+	注
+		ingress并不是k8s自带功能,需要手动安装
+	安装
+		1.部署ingress Controller
+			文档资料中的ingress-controller.yaml
+				apiVersion: v1
+				kind: Namespace
+				metadata:
+				  name: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+
+				---
+
+				kind: ConfigMap
+				apiVersion: v1
+				metadata:
+				  name: nginx-configuration
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+
+				---
+				kind: ConfigMap
+				apiVersion: v1
+				metadata:
+				  name: tcp-services
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+
+				---
+				kind: ConfigMap
+				apiVersion: v1
+				metadata:
+				  name: udp-services
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+
+				---
+				apiVersion: v1
+				kind: ServiceAccount
+				metadata:
+				  name: nginx-ingress-serviceaccount
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+
+				---
+				apiVersion: rbac.authorization.k8s.io/v1beta1
+				kind: ClusterRole
+				metadata:
+				  name: nginx-ingress-clusterrole
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+				rules:
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - configmaps
+				      - endpoints
+				      - nodes
+				      - pods
+				      - secrets
+				    verbs:
+				      - list
+				      - watch
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - nodes
+				    verbs:
+				      - get
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - services
+				    verbs:
+				      - get
+				      - list
+				      - watch
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - events
+				    verbs:
+				      - create
+				      - patch
+				  - apiGroups:
+				      - "extensions"
+				      - "networking.k8s.io"
+				    resources:
+				      - ingresses
+				    verbs:
+				      - get
+				      - list
+				      - watch
+				  - apiGroups:
+				      - "extensions"
+				      - "networking.k8s.io"
+				    resources:
+				      - ingresses/status
+				    verbs:
+				      - update
+
+				---
+				apiVersion: rbac.authorization.k8s.io/v1beta1
+				kind: Role
+				metadata:
+				  name: nginx-ingress-role
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+				rules:
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - configmaps
+				      - pods
+				      - secrets
+				      - namespaces
+				    verbs:
+				      - get
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - configmaps
+				    resourceNames:
+				      # Defaults to "<election-id>-<ingress-class>"
+				      # Here: "<ingress-controller-leader>-<nginx>"
+				      # This has to be adapted if you change either parameter
+				      # when launching the nginx-ingress-controller.
+				      - "ingress-controller-leader-nginx"
+				    verbs:
+				      - get
+				      - update
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - configmaps
+				    verbs:
+				      - create
+				  - apiGroups:
+				      - ""
+				    resources:
+				      - endpoints
+				    verbs:
+				      - get
+
+				---
+				apiVersion: rbac.authorization.k8s.io/v1beta1
+				kind: RoleBinding
+				metadata:
+				  name: nginx-ingress-role-nisa-binding
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+				roleRef:
+				  apiGroup: rbac.authorization.k8s.io
+				  kind: Role
+				  name: nginx-ingress-role
+				subjects:
+				  - kind: ServiceAccount
+				    name: nginx-ingress-serviceaccount
+				    namespace: ingress-nginx
+
+				---
+				apiVersion: rbac.authorization.k8s.io/v1beta1
+				kind: ClusterRoleBinding
+				metadata:
+				  name: nginx-ingress-clusterrole-nisa-binding
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+				roleRef:
+				  apiGroup: rbac.authorization.k8s.io
+				  kind: ClusterRole
+				  name: nginx-ingress-clusterrole
+				subjects:
+				  - kind: ServiceAccount
+				    name: nginx-ingress-serviceaccount
+				    namespace: ingress-nginx
+
+				---
+
+				apiVersion: apps/v1
+				kind: Deployment
+				metadata:
+				  name: nginx-ingress-controller
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+				spec:
+				  replicas: 1
+				  selector:
+				    matchLabels:
+				      app.kubernetes.io/name: ingress-nginx
+				      app.kubernetes.io/part-of: ingress-nginx
+				  template:
+				    metadata:
+				      labels:
+				        app.kubernetes.io/name: ingress-nginx
+				        app.kubernetes.io/part-of: ingress-nginx
+				      annotations:
+				        prometheus.io/port: "10254"
+				        prometheus.io/scrape: "true"
+				    spec:
+				      hostNetwork: true
+				      # wait up to five minutes for the drain of connections
+				      terminationGracePeriodSeconds: 300
+				      serviceAccountName: nginx-ingress-serviceaccount
+				      nodeSelector:
+				        kubernetes.io/os: linux
+				      containers:
+				        - name: nginx-ingress-controller
+				          image: lizhenliang/nginx-ingress-controller:0.30.0
+				          args:
+				            - /nginx-ingress-controller
+				            - --configmap=$(POD_NAMESPACE)/nginx-configuration
+				            - --tcp-services-configmap=$(POD_NAMESPACE)/tcp-services
+				            - --udp-services-configmap=$(POD_NAMESPACE)/udp-services
+				            - --publish-service=$(POD_NAMESPACE)/ingress-nginx
+				            - --annotations-prefix=nginx.ingress.kubernetes.io
+				          securityContext:
+				            allowPrivilegeEscalation: true
+				            capabilities:
+				              drop:
+				                - ALL
+				              add:
+				                - NET_BIND_SERVICE
+				            # www-data -> 101
+				            runAsUser: 101
+				          env:
+				            - name: POD_NAME
+				              valueFrom:
+				                fieldRef:
+				                  fieldPath: metadata.name
+				            - name: POD_NAMESPACE
+				              valueFrom:
+				                fieldRef:
+				                  fieldPath: metadata.namespace
+				          ports:
+				            - name: http
+				              containerPort: 80
+				              protocol: TCP
+				            - name: https
+				              containerPort: 443
+				              protocol: TCP
+				          livenessProbe:
+				            failureThreshold: 3
+				            httpGet:
+				              path: /healthz
+				              port: 10254
+				              scheme: HTTP
+				            initialDelaySeconds: 10
+				            periodSeconds: 10
+				            successThreshold: 1
+				            timeoutSeconds: 10
+				          readinessProbe:
+				            failureThreshold: 3
+				            httpGet:
+				              path: /healthz
+				              port: 10254
+				              scheme: HTTP
+				            periodSeconds: 10
+				            successThreshold: 1
+				            timeoutSeconds: 10
+				          lifecycle:
+				            preStop:
+				              exec:
+				                command:
+				                  - /wait-shutdown
+
+				---
+
+				apiVersion: v1
+				kind: LimitRange
+				metadata:
+				  name: ingress-nginx
+				  namespace: ingress-nginx
+				  labels:
+				    app.kubernetes.io/name: ingress-nginx
+				    app.kubernetes.io/part-of: ingress-nginx
+				spec:
+				  limits:
+				  - min:
+				      memory: 90Mi
+				      cpu: 100m
+				    type: Container
+			可以使用kubectl get pods -n ingress-nginx来查看
+		2.创建ingress规则
+			apiVersion: networking.k8s.io/v1beta1
+			kind: Ingress
+			metadata:
+			  name: example-ingress
+			spec:
+			  rules:
+			  - host: example.ingredemo.com // 修改为自己的域名 
+			    http:
+			      paths:
+			      - path: /
+			        backend:
+			          serviceName: web // 与上面的对应
+			          servicePort: 80
+
 helm
 	介绍
 		是k8s的包管理工具(如Linux中的yum/apt,可以方便的将打包好的yaml部署到k8s上)
@@ -664,6 +1030,7 @@ helm
 	流程
 		1.在指定目录中(templates)创建yaml文件
 		2.使用install进行安装
+			helm install 安装名 chart名(也就是创建chart时的目录)
 		3.如果有修改,再使用upgrade进行更新
 	values.yaml全局变量
 		1.yaml大致有哪些需要进行全局变量的
@@ -674,6 +1041,16 @@ helm
 			replicas: 1
 		2.使用的时候{{ .Values.变量名}}
 			{{ .Release.Name}} // 当前版本的名称,这样可以不同版本,名称不同
+			metadata:
+			  name: {{ .Release.Name}}-deploy // 模板名称
+			spec:
+			  replicas: 1
+			  selector: 
+			    matchLabels:
+			      app: {{ .Values.Name}} // 与template中的labels建立关系
+			  strategy: {}
+			  template:
+			  ...
 持久化
 	1.nfs(通过网络存储)(挂载服务器/k8s服务器都需要安装)
 		安装(yum -y install nfs-utils)
@@ -681,23 +1058,37 @@ helm
 			/data/nfs(挂载路径) *(rw,no_root_squash)(路径权限)
 		启动(systemctl start nfs)
 		使用(yaml文件挂载路径使用)
+		spec:
+			containers:
+			- name: nginx
+			volumeMounts:
+			- name: wwwroot
+			  moutPath: /usr/share/nginx/html // 挂载的路径
 			volumes:
 			  - name: ca-certs
 			    nfs:
 			      server: 192.168....(挂载服务器IP地址)
 			      path: /data/nfs (挂载路径)
-	2.PV和PVC
+	2.PV和PVC(就是相当于在nfs中又加了一个中间件)
 		PV:对存储资源进行抽象,对外提供可以调用的地方(生产者)
 		PVC:调用(消费者)
 		流程:
 			应用调用PVC,PVC中封装了PV的信息(IP,路径),PV实现数据存储(存储容量,匹配模式等)
 		使用:
 			(PVC)
-			volumes:
+			spec:
+			  containers:
+			  - name: nginx
+			  volumeMounts:
+			  - name: wwwroot
+			    moutPath: /usr/share/nginx/html // 挂载的路径
+			  volumes:
 			  - name: wwwroot
 			    persistentVolumeClaim:
 			      claimName: my-pvc
-			--- // ---表示下面是新的yaml部分
+
+			---
+
 			apiVersion: apps/v1
 			kind: PersistentVolumeClaim
 			metadata:
@@ -707,6 +1098,7 @@ helm
 	            - name: ReadWriteMany // 读写权限
 	          resources:
 	            storage: 5Gi // 存储大小
+
 	        (PV)
 	        apiVersion: v1
 			kind: PersistentVolume
@@ -729,7 +1121,7 @@ helm
 		node1,node2...等抓取数据到prometheus,通过grafana数据展示
 	搭建流程
 		下载
-			下载prometheus,grafana相应yaml/yml文件,并启动
+			prometheus,grafana相应yaml/yml文件,并启动
 		通过URL访问grafana(账号密码默认admin/admin)
 		配置db源是prometheus就可以进行监控
 集群搭建
@@ -839,5 +1231,32 @@ helm
 			加入集群
 				kebuadm join master.k8s.io:6443 --token aaaaaaa --discovery-token-ca-cert-hash sha256:aaaaaaa --control-plane(--control-plane这个在Master2中加,在node节点就不用加了)
 流程
-	1.阿里云创建镜像
+	1.书写dockerFile
+		FROM openjdk:8-jdk-alpine
+		VOLUME /tmp
+		ADD ./target/demojenkins.jar demojenkins.jar
+		ENTRYPOINT ["java", "-jar", "/demojenkins.jar", "&"]
+	2.根据dockerFile制作镜像
+		docker build -t java-demo-01:latest .
+	3.运行镜像开启程序
+		docker run -d -p 8111:8111 java-demo-o1:latest -t
+	4.上传镜像到镜像服务器中
+		阿里云申请(容器镜像服务)
+		创建仓库后,可使用推荐命令来操作
+			登录
+			$ docker login --username=蚊子会数字营销 registry.cn-hangzhou.aliyuncs.com
+			拉取镜像
+			$ docker pull registry.cn-hangzhou.aliyuncs.com/aliyun-docker-wzh/aliyun-docker-wzh:[镜像版本号]
+			将镜像推送到阿里云
+			$ docker tag [ImageId] registry.cn-hangzhou.aliyuncs.com/aliyun-docker-wzh/aliyun-docker-wzh:[镜像版本号]
+			$ docker push registry.cn-hangzhou.aliyuncs.com/aliyun-docker-wzh/aliyun-docker-wzh:[镜像版本号]
+			...
+	5.k8s使用镜像
+		kubectl create deploymnet javademo1 --image=阿里云镜像地址.../阿里云自建仓库地址:[镜像版本号] --dry-run -o yaml > javademo1.yaml
+		kubectl apply -f javademo1.yaml
+		对外暴露端口(service / igress都可以)
+		(扩容,增加至3个deployment: kubectl scale deployment javademo1 --replicas=3)
+		kubectl expose deployment javademo1 --port=8111 target-port=8111 --type=NodePort
+		查看service
+		kubectl get svc
 </pre>
