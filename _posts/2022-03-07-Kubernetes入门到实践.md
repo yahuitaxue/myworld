@@ -52,7 +52,15 @@ category: Linux
 		2.kube-proxy
 			工作节点上的一个网络代理组件，它的作用是将发往service的流量负载均衡到正确的后端pod。kube-proxy监听API server中的service和endpoint的变化，并通过iptables或者IPVS创建不同的路由规则，以实现上述目的。
 	注
-		deployment是pod版本管理的工具 用来区分不同版本的pod 从开发者角度看,deployment顾明思意,既部署,对于完整的应用部署流程,除了运行代码(既pod)之外,需要考虑更新策略,副本数量,回滚,重启等步骤
+		deployment
+			是pod版本管理的工具 用来区分不同版本的pod 从开发者角度看,deployment顾明思意,既部署,对于完整的应用部署流程,除了运行代码(既pod)之外,需要考虑更新策略,副本数量,回滚,重启等步骤
+		kubectl(Kubernetes API的客户端)
+			kubectl get - 列出资源
+			kubectl describe - 显示资源的详细信息
+			kubectl logs - 打印pod中的容器日志
+			kubectl exec - pod中容器内部执行命令
+		kubeadmin
+			是Kubernetes项目自带的及集群构建工具,负责执行构建一个最小化的可用集群以及将其启动等的必要基本步骤
 概念
 	1.Pod
 		最小的部署单元
@@ -67,6 +75,12 @@ category: Linux
 	3.Service
 		定义一组Pod的访问规则(统一入口,就是订单访问指定节点指定Pod,其他模块访问指定节点指定Pod. 这些通过IP或者restful访问等等)
 	(通过Service入口访问Controller创建Pod)
+	4.StatefulSet
+		RC、Deployment、DaemonSet都是面向无状态的服务，它们所管理的Pod的IP、名字，启停顺序等都是随机的，而StatefulSet是什么？顾名思义，有状态的集合，管理所有有状态的服务，比如MySQL、MongoDB集群等。
+		StatefulSet本质上是Deployment的一种变体，在v1.9版本中已成为GA版本，它为了解决有状态服务的问题，它所管理的Pod拥有固定的Pod名称，启停顺序，在StatefulSet中，Pod名字称为网络标识(hostname)，还必须要用到共享存储。
+		在Deployment中，与之对应的服务是service，而在StatefulSet中与之对应的headless service，headless service，即无头服务，与service的区别就是它没有Cluster IP，解析它的名称时将返回该Headless Service对应的全部Pod的Endpoint列表。
+	5.schema
+		kubernetes资源管理的核心数据结构。由以前文章我们了解到 kubernetes 会将其管理的资源划分为 group/version/kind 的概念，我们可以将资源在内部版本和其他版本中相互转化，我们可以序列化和反序列化的过程中识别资源类型，创建资源对象，设置默认值等等。这些 group/version/kind 和资源 model 的对应关系，资源 model 的默认值函数，不同版本之间相互转化的函数等等全部由 schema 维护。可以说 schema 是组织 kubernetes 资源的核心
 部署
 	1.Kubeadm
 		K8S的部署工具,提供kubeadm init/kubeadm join,用于快速部署集群
@@ -130,6 +144,32 @@ kubectl语法
 	NAME:指定资源的名称,名称也大小写敏感,如果省略名称,则会显示所有的资源
 	flags:指定可选参数,例如-s/-server
 	kubectl get pod pod1
+	命令
+		annotate 为一个或多个资源添加注释
+		api-versions 列出支持的API版本。
+		apply 对文件或stdin的资源进行配置更改。
+		attach 连接到一个运行的容器，既可以查看output stream，也可以与容器(stdin)进行交互。
+		autoscale 自动扩容/缩容由replication controller管理的一组pod。
+		cluster-info 显示有关集群中master和services的终端信息。
+		config 修改kubeconfig文件。有关详细信息，请参阅各个子命令。
+		create 从file或stdin创建一个或多个资源。
+		delete 从file，stdin或指定label 选择器，names，resource选择器或resources中删除resources。
+		describe 显示一个或多个resources的详细状态。
+		edit 使用默认编辑器编辑和更新服务器上一个或多个定义的资源。
+		exec 对pod中的容器执行命令。
+		explain 获取各种资源的文档。例如pod，node，services等
+		expose 将 replication controller，service或pod作为一个新的Kubernetes service显示。
+		get 列出一个或多个资源。
+		label 添加或更新一个或多个资源的flags。
+		logs 在pod中打印容器的日志。
+		patch 使用strategic merge 补丁程序更新资源的一个或多个字段。
+		port-forward 将一个或多个本地端口转发到pod。
+		proxy 在Kubernetes API服务器运行代理。
+		replace 从file或stdin替换资源。
+		rolling-update 通过逐步替换指定的replication controller及其pod来执行滚动更新。
+		run 在集群上运行指定的镜像。
+		scale 更新指定replication controller的大小。
+		version 显示客户端和服务器上运行的Kubernetes版本。
 yaml文件(资源清单文件)
 	对资源管理和资源对象编排部署可以通过声明样式YAML文件来解决，也就是可以吧需要对资源对象操作编辑到文件中，通过kubectl命令使用资源清单文件就可以实现对大量的资源对象进行编排部署
 	使用
@@ -350,30 +390,67 @@ Controller
 	与Pod的关系
 		1.Pod通过Controller实现应用的运维,比如伸缩,滚动升级...
 		2.通过selector与Pod的labels建立关系
+			#指定api版本标签6个常用的apiversion
+				v1： Kubernetes API的稳定版本，包含很多核心对象：pod、service等。
+				apps/v1： 包含一些通用的应用层的api组合，如：Deployments, RollingUpdates, and ReplicaSets。
+				batch/v1： 包含与批处理和类似作业的任务相关的对象，如：job、cronjob。
+				autoscaling/v1： 允许根据不同的资源使用指标自动调整容器。
+				networking.k8s.io/v1： 用于Ingress。
+				rbac.authorization.k8s.io/v1：用于RBAC。
 			apiVersion: apps/v1
+			#定义资源的类型/角色，deployment为副本控制器
+			#此处资源类型可以是Deployment、Job、Ingress、Service等
 			kind: Deployment
+			#定义资源的元数据信息，比如资源的name、namespace、labels等信息
 			metadata:
 			  creationTimestamp: null
 			  labels:
 			    app: web
+			  #定义资源的名称，在同一个namespace空间中必须是唯一的
 			  name: web
+			#定义deployment资源需要的参数属性,配置项，诸如是否在容器失败时重新启动容器的属性
 			spec:
+			  #定义副本数量
 			  replicas: 1
-			  selector: 
+			  #定义标签选择器
+			  selector:
+			    #定义匹配标签
 			    matchLabels:
-			      app: web // 与template中的labels建立关系
+			      #需与后面的.spec.template.metadata.labels定义的标签保持一致
+			      app: web
 			  strategy: {}
-			  template:
+			  #定义业务模板，如果有多个副本，所有副本的属性会按照模板的相关配置进行匹配
+			  template: #这里Pod的定义
 			    metadata:
 			      creationTimestamp: null
+			      #定义Pod副本将使用的标签，需与前面的.spec.selector.matchLabels定义的标签保持一致
 			      labels:
 			        app: web
 			    spec:
+			      #定义容器属性
 			      containers:
+			      #定义一个容器名，一个-name:定义一个容器
 			      - image: nginx
+			        #定义容器使用的镜像以及版本
 			        name: nginx
+        		    ports:
+        		    #定义容器对外的端口
+        		    - containerPort: 80
 			        resources: {}
 			status: {}
+		针对Service中
+			spec:
+			  type: NodePort      #这里代表是NodePort类型的,另外还有ingress,LoadBalancer
+			  ports:
+			  - port: 80          #这里的端口和clusterIP(kubectl describe service service-hello中的IP的port)对应，即在集群中所有机器上curl 10.98.166.242:80可访问发布的应用服务。
+			    targetPort: 8080  #端口一定要和container暴露出来的端口对应，nodejs暴露出来的端口是8081，所以这里也应是8081
+			    protocol: TCP
+			    nodePort: 31111   # 所有的节点都会开放此端口30000--32767，此端口供外部调用。
+			port详解
+				port：port是k8s集群内部访问service的端口，即通过clusterIP: port可以访问到某个service
+				nodePort：nodePort是外部访问k8s集群中service的端口，通过nodeIP: nodePort可以从外部访问到某个service。
+				targetPort：targetPort是pod的端口，从port和nodePort来的流量经过kube-proxy流入到后端pod的targetPort上，最后进入容器。
+				containerPort：containerPort是pod内部容器的端口，targetPort映射到containerPort。
 	使用yaml应用
 		// 导出应用
 		kubectl create deployment web --image=nginx --dry-run -o yaml > web.yaml
@@ -398,6 +475,9 @@ Controller
 		kubectl rollout undo deployment web --to-revision=2
 	弹性(扩展10个)
 		kubectl scale deployment web --replicas=10
+	更新
+		kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1(假如我们现在想要让nginx pod使用nginx:1.9.1的镜像来代替原来的nginx:1.7.9的镜像)
+		kubectl edit deployment/nginx-deployment(我们可以使用edit命令来编辑Deployment修改.spec.template.spec.containers[0].image将nginx:1.7.9改写成nginx:1.9.1)
 Service
 	目的
 		1.防止Pod失联(服务发现)
@@ -413,8 +493,30 @@ Service
 			集群的内部使用(比如前端Pod访问后端Pod,这就属于内部访问)
 		2.NodePort
 			对外访问应用使用(比如用户访问前端页面,通过暴露的IP地址与端口号访问)
-		4.LoadBalancer
+		3.LoadBalancer
 			对外访问应用使用/公有云
+	声明
+		配置将创建一个名称为 “my-service” 的 Service 对象，它会将请求代理到使用 TCP 端口 9376，并且具有标签 "app=MyApp" 的 Pod 上。 这个 Service 将被指派一个 IP 地址（通常称为 “Cluster IP”），它会被服务的代理使用
+			kind: Service
+			apiVersion: v1
+			metadata:
+			  name: my-service
+			spec:
+			  selector:
+			    app: MyApp
+			  ports:
+			    - protocol: TCP
+			      port: 80
+			      targetPort: 9376
+ResourceQuota
+	当多个团队、多个用户共享使用K8s集群时，会出现不均匀资源使用，默认情况下先到先得，这时可以通过ResourceQuota来对命名空间资源使用总量做限制，从而解决这个问题。
+		apiVersion: v1
+		kind: ResourceQuota
+		metadata:
+		  name: pod-demo
+		spec:
+		  hard:
+		    pods: "2" // 设置配额为两个,如果在Deployment中replicas为3那么就只能启2个
 部署有状态应用
 	1.yaml文件kind需要是Service
 		apiVersion: apps/v1
@@ -957,15 +1059,17 @@ Ingress
 				kind: LimitRange
 				metadata:
 				  name: ingress-nginx
-				  namespace: ingress-nginx
+				  namespace: ingress-nginx // 声明在这个命名空间下限制,那么其他pod在这个命名空间下就会被限制
 				  labels:
 				    app.kubernetes.io/name: ingress-nginx
 				    app.kubernetes.io/part-of: ingress-nginx
 				spec:
 				  limits:
-				  - min:
-				      memory: 90Mi
-				      cpu: 100m
+				  - default:
+				      memory: 90Mi (如果您指定了容器的限额值,但未指定内存请求值,内存请求值与它的限额值相等)
+				      cpu: 100m 			    
+				    defaultRequest:
+				      memory: 256Mi (如果您指定了容器的请求值,但未指定限额值,该命名空间的默认内存限额值)
 				    type: Container
 			可以使用kubectl get pods -n ingress-nginx来查看
 		2.创建ingress规则
@@ -975,13 +1079,15 @@ Ingress
 			  name: example-ingress
 			spec:
 			  rules:
-			  - host: example.ingredemo.com // 修改为自己的域名 
+			  - host: example.ingredemo.com // 修改为自己的域名1
 			    http:
 			      paths:
-			      - path: /
+			      - path: / // 可以配置不同域名不同目录访问不同的service
 			        backend:
 			          serviceName: web // 与上面的对应
 			          servicePort: 80
+			  - host: example.ingredemo.com // 修改为自己的域名2
+			    ...
 
 helm
 	介绍
@@ -1259,4 +1365,6 @@ helm
 		kubectl expose deployment javademo1 --port=8111 target-port=8111 --type=NodePort
 		查看service
 		kubectl get svc
+Web界面
+	Dashboard 是 Kubernetes 集群的通用的、基于 Web 的用户界面。 它使用户可以管理集群中运行的应用程序以及集群本身， 并进行故障排除。
 </pre>
