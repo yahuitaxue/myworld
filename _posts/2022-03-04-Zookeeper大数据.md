@@ -8,6 +8,7 @@ category: Linux
 书名：《-》
 
 <pre style="text-align: left;">
+	通常分为:文件系统,通知机制
 	ZAB协议
 		消息广播
 			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZab.jpg' | relative_url }}" alt="" /></span>
@@ -152,4 +153,26 @@ category: Linux
 			全局数据一致：每个server保存一份相同的数据副本，client无论连接到哪个server，数据都是一致的 分布式读写，更新请求转发，由leader实施更新请求顺序进行，来自同一个client的更新请求按其发送顺序依次执行
 			数据更新原子性，一次数据更新要么成功，要么失败
 			实时性，在一定时间范围内，client能读到最新数据
+	watch通知机制
+		get -w /test/test1
+		此时使用另外一个客户端去更改 /test/test1 节点的数据，我们就可以看到原来的客户端自动收到了一个WATCHER 通知。
+			事件类型：（znode节点相关的）：
+				EventType.NodeCreated
+				EventType.NodeDataChanged
+				EventType.NodeChildrenChanged
+				EventType.NodeDeleted
+		client端会对某个znode建立一个watcher事件,当该znode发生变化时,这些client会受到zk的通知,然后client根据znode变化来做出业务上的改变等
+			如果我们再进行set操作，并没有再次受到通知，这个就是ZK的一个监听机制决定的：znode更改时，将触发并删除监视，也就是说只能监听一次。
+			如果我们监听的是节点/test，但是我们修改的是/test/test1的节点的话，这个是监听不到的。
+		在3.6.x版本中支持：在znode上设置永久性的递归监视，这些监视在触发时不会删除，并且会以递归方式触发注册znode以及所有子znode的更改。
+			使用方式：addWatch [-m mode] path
+			可选模式是[PERSISTENT，PERSISTENT_RECURSIVE]之一-默认为PERSISTENT_RECURSIVE。
+			PERSISTENT：只有当前监听的节点有变化了，才能收到通知，会持续的收到每次的通知。
+			PERSISTENT_RECURSIVE：当前节点和子节点有变化了，就会收到通知，会持续的收到每次的通知。
+		注册方式								create 		childrenchange		change 		deleted
+		zk.exists("/node-x",wathcer)		可监控							可监控		可监控
+		zk.getData("/node-x",wathcer)										可监控		可监控
+		zk.getChildren("/node-x",wathcer)				可监控							可监控
+		注
+			一个watch事件是一个一次性的触发器,当被设置了watch的数据发生了改变的时候,则服务器将这个改变发送给设置了watch的客户端以便通知他们
 </pre>
