@@ -44,10 +44,10 @@ category: Linux
 10.周期执行任务 cron
     service crond start / status
     crontab -e / -l
-    00 06 * * * /bin/sh /backup/abc.sh
-	00 03 1 * * find /backup/db -name abc_`date -d"2 month ago" +"%Y-%m"`* | xargs rm -r
-	00 03 */2 * * cp -f /.../*.log /.../abc.yyh && echo "" > *.log
-	* 23-3/1 * * * service httpd restart
+    0 0 06 * * * /bin/sh /backup/abc.sh
+	0 0 03 1 * * find /backup/db -name abc_`date -d"2 month ago" +"%Y-%m"`* | xargs rm -r
+	0 0 03 */2 * * cp -f /.../*.log /.../abc.yyh && echo "" > *.log
+	* * 23-3/1 * * * service httpd restart
 	#每天晚上23点到3点,每小时重启httpd进程
 11.创建文件 touch
 12.删除文件 rm

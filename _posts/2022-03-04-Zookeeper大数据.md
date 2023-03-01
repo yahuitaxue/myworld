@@ -17,7 +17,7 @@ category: Linux
 			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZabChoose.jpg' | relative_url }}" alt="" /></span>
 			(zxid就是指事务ID,事务ID越大表示执行的命令最多,那么数据就最全)
 			<span class="image featured"><img src="{{ 'assets/images/other/ZookeeperZabReset.jpg' | relative_url }}" alt="" /></span>
-	ZooKeeper数据模型的结构与Unix文件系统很类似,整体上可以看做是一棵树,每个节点称作一个ZNode,每个ZNode默认能够存储1M的数据,每个ZNode都可以通过器路径唯一标识
+	ZooKeeper数据模型的结构与Unix文件系统很类似,整体上可以看做是一棵树,每个节点称作一个ZNode,每个ZNode默认能够存储1M的数据,每个ZNode都可以通过路径唯一标识
 	下载
 		https://archive.apache.org/dist/
 		(通常下载的是-bin文件,不带bin的是原码文件)
@@ -39,7 +39,7 @@ category: Linux
 			客户端能实时洞察到服务上下线的状态
 		软负载均衡
 			在Zookeeper中记录每台服务器的访问数,让访问数最少的服务器去处理最新的客户端请求
-	配置文件
+	配置文件(zoo_sample.cfg)
 		# The number of milliseconds of each tick
 		tickTime=2000 // 服务器与客户端心跳时间(单位毫秒)
 		# The number of ticks that the initial 
