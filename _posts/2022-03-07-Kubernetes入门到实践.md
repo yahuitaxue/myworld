@@ -13,6 +13,8 @@ category: Linux
 	2.可进行容器化应用部署
 	3.利于应用扩展
 	4.目标实施让部署容器化应用更加简洁高效
+生成yaml
+
 功能
 	1.自动装箱
 		基于容器对应用运行环境的资源配置要求自动部署应用容器
@@ -186,6 +188,44 @@ yaml文件(资源清单文件)
 		2.使用已经部署好的资源生成
 			kubectl get deploy // 获取已经部署好的资源
 			kubectl get deploy nginx -o=yaml > my.yaml
+	注
+		- metadata.labels是资源自身的标签，可以用来区分和描述该资源的特征。这些标签不会被自动传递给其他相关的资源。
+		- spec.selector.matchlabels是用于选择关联该资源的其他资源的标签。其定义了一个label selector，会选择具有与其匹配的所有标签的资源。
+		- spec.template.metadata.labels是作为部署（Deployment）、状态集（StatefulSet）等资源的一部分，用来指定该资源创建的 Pod 的标签， 这些标签也会被自动传递给Pod相关的其他资源。
+		metadata.labels字段用于标记当前资源对象，
+		spec.selector.matchlabels字段用于选择并管理其他资源对象，
+		spec.template.metadata.labels字段用于指定模板创建的资源对象的标签。
+		spec.selector.matchlabels和spec.template.metadata.labels字段应该一致，以确保选择器能够检测到由模板创建和管理的所有Pod对象。
+	例
+		apiVersion: apps/v1 # deployment api 版本
+		kind: Deployment # 资源类型为 deployment
+		metadata: # 元信息
+		  labels: # 标签
+		    app: nginx-deploy # 具体的 key: value 配置形式
+		  name: nginx-deploy # deployment 的名字
+		  namespace: default # 所在的命名空间
+		spec:
+		  replicas: 1 # 期望副本数
+		  revisionHistoryLimit:  # 进行滚动更新后，保留的历史版本数
+		  selector: # 选择器，用于找到匹配的 RS
+		    matchLabels: # 按照标签匹配
+		      app: nginx-deploy # 匹配的标签key/value
+		  strategy: # 更新策略
+		    rollingUpdate: # 滚动更新配留
+		      maxSurge: 25% # 进行滚动更新时，更新的个数最多可以超过期望副本数的个数|比例
+		      maxUnavailable: 25% # 进行滚动更新时，最大不可用比例更新比例，表示在所有副本数中，最多可以有多少个不更新成功
+		    type: RollingUpdate # 更新类型，采用滚动更新
+		  template: # pod 模板
+		    metadata: # pod 的元信息
+		      labels: # pod 的标
+		        app: nginx-deploy
+			spec: # pod 川以信后
+			  containers: # pod 的容器
+			  - image: nginx:1.7.9 # 饶像
+			    imagePullPolicy: IfNotPresent # 拉取策略
+			    name: nginx # 容器名称
+			  restartPolicy: Always # 重启策略
+			  terminationGracePeriodSeconds: 30 # 删除操作最多宽限多长时间
 Pod
 	概念
 		1.最小的部署单元
@@ -195,6 +235,37 @@ Pod
 			Pod会默认创建一个Pause容器(也叫info容器),他会独立出IP,MAC,Port,命名空间
 			再会创建其他业务容器(此时在info容器中也会注册业务容器的信息,此时所有的业务容器就共享相同的IP,MAC,Port,命名空间...)
 		4.Pod是短暂的
+		<span class="image featured"><img src="{{ 'assets/images/other/k8s_pod.jpg' | relative_url }}" alt="" /></span>
+		其中
+			init C:表示pod的初始化操作,一般都在此,而不是在postStart中,因为postStart无法确认pod内command的先后顺序
+			Startup,Readiness,Liveness:三种探针
+			postStart:pod初始运行时的操作(用的比较少)
+			preStop:pod销毁前的操作(比如一些手动删除,释放等的操作)
+	生命周期(postStart与preStop)
+		...
+		spec: # 期望 Pod 按照这里面的描述进行创建
+		  terminationGracePeriodSeconds: 30 # 当 pod 被删除时，给这个pod宽限的时间
+		  containers: # 对于 Pod 中的容器描述
+		  - name: nginx # 容器的名称
+			image: nginx:1.7.9 # 指定容器的镜像imagePullPolicy: IfNotPresent # 镜像拉取策略，指定如果本地有就用本地的，如果没有就拉取远程的
+			Lifecycle: # 生命周期的配置
+			poststart: # 生命周期启动阶段做的事情，不一定在容器的 command 之前运行
+				exec:
+				  command :
+				  - sh
+				  - -C
+				  - "echo '<h1>pre stop</h1>' > /usr/share/nginx/html/prestop.html"
+			preStop:
+				exec:
+				  command :
+				  - sh
+				  - "sleep 50; echo 'sleep finished...' >> /usr/share/nginx/html/prestop.html"
+			command: # 指定容器启动时执行的命令
+			- nginx
+			- g
+			- 'daemon off;' # nginx -g 'daemon off;
+			workingDir: /usr/share/nginx/html # 定义容器肩动后的工作目录
+			...
 	用处
 		1.创建容器使用Docker,一个Docker对应一个容器,一个容器运行一个应用程序
 		2.Pod是多进程设计,可运行多个应用程序(一个Pod内有多个容器,而每一个容器都是一个应用程序)
@@ -289,22 +360,19 @@ Pod
 			    image: registry.aliyuncs.com/google_containers/kube-apiserver:v1.23.4
 			    imagePullPolicy: IfNotPresent // 1.镜像拉取策略(IfNotPresent:默认值,镜像在宿主机上不存在时才拉取;Always:每次创建Pod都会重新拉取一次镜像;Never:从不主动拉取镜像)
 			    livenessProbe: // 4.健康检查(存活检查,如果检查容器失败,则杀死容器,根据restartPolicy的设置来操作)
-			    				// Prob支持以下三种检查方式
-			    				// httpGet 发送HTTP请求,返回200-400范围状态码为成功
-			    				// exec 执行Shell命令,返回状态码是0为成功
-			    				// tcpSocket 发起TCP Socket建立成功
 			      failureThreshold: 8
 			      httpGet:
 			        host: 192.168.33.10
 			        path: /livez
 			        port: 6443
 			        scheme: HTTPS
-			      initialDelaySeconds: 10
-			      periodSeconds: 10
-			      timeoutSeconds: 15
+			      initialDelaySeconds: 10 // 初始化时间,比如要多久才执行检测
+			      periodSeconds: 10 // 监测的间隔时间
+			      timeoutSeconds: 15 // 执行检测的超时时长
 			    name: kube-apiserver
 			    readinessProbe: // 4.健康检查(就绪检查,如果检查失败,K8S会把Pod从service endpoints中剔除)
-			      failureThreshold: 3
+			    				// 用于判断容器内应用程序是否健康
+			      failureThreshold: 3 // 失败次数,超过这个次数就判断为失败
 			      httpGet:
 			        host: 192.168.33.10
 			        path: /readyz
@@ -318,7 +386,12 @@ Pod
 			      #(自己手动新增) limits: // Pod调度最大的限制
 			      #(自己手动新增)   memory: 128Mi
 			      #(自己手动新增)   cpu: 500m
-			    startupProbe:
+			    startupProbe: // 4.健康检查(一共是三种探针(或者叫健康检查),startupProbe, readinessProbe, livenessProbe),这个是1.16新增的类型
+			    			// 这个用于判断容器内应用程序是否已经启动,首先禁用其他健康检查,等检查完毕后,才会执行其他的健康检查
+		    				// 三种探针Prob支持以下三种检查方式
+		    				// httpGet 也是最常用的方式,发送HTTP请求,返回200-400范围状态码为成功
+		    				// exec 在容器内执行Shell命令,返回状态码是0为成功(比如ls f(比如这个文件不存在), 则再执行 echo $1则会返回2)
+		    				// tcpSocket 发起TCP Socket,就是检测端口是否是通的,如果通的表示建立成功
 			      failureThreshold: 24
 			      httpGet:
 			        host: 192.168.33.10
@@ -386,6 +459,77 @@ Pod
 					    operator: "Equal"
 					    value: "自定义的value"
 					    effect: "污点的三个值"
+Deployments
+	介绍
+		Deployments是一种声明式方式来管理Pods，它定义了ReplicaSets、Pod模板和更新策略，以确保应用程序的高可用性和容错性。Deployments可以帮助用户平滑地升级或回滚应用程序，同时提供了自动伸缩和滚动更新的能力。它也可以与Service连接，提供了对服务的自动发现和负载均衡。在Kubernetes中，Deployments是一种极为重要的资源类型，常用于部署生产环境中的应用程序。
+	注
+		1.因为pod不能动态修改,所以正式使用中,并不是直接使用pod,而是使用RS,RS是指确保指定数量的Pod副本正在运行。 它能够根据定义的规则进行扩展或缩减Pod副本的数量。 如果Pod的副本数与规则不匹配，则Rs将自动调整它们的数量，使其与规则相匹配。 Rs和Pod之间的关系是一对多的关系，即一个Rs可以控制多个Pod。
+		2.而为了取消强绑定关系所以使用selector(或者理解为查询条件),通过打标签的形式使用Rs
+	形式
+		命令行也可以 kubectl get po -l 'app in (web,web1,web2...), ...' 可以多个条件进行筛选
+		1.在metadata中,使用labels来打标签
+		2.在spec中,使用selector来打标签
+	之间的关系
+		// 根据deployments,replicaset(RS),pod的名字就可以看出来
+		// deployments里面关联RS,RS里面才是POD
+		[root@k8s-master deployments]# kubectl create deploy nginx-deploy --image=nginx:1.7.9
+			deployment.apps/nginx-deploy created
+		[rootek8s-master deployments]# kubectl get deployments
+		NAME 	READY 	UP-TO-DATE 	AVAILABLE 	AGE
+		nginx-deploy	1/1 	1	1	11s
+		[rootak8s-master deployments]# kubectl get deploy
+		NAME 	READY 	UP-TO-DATE 	AVAILABLE 	AGE
+		nginx-deploy	1/1 	1	1	11s
+		[root@k8s-master deployments]# kubectl get replicaset
+		NAME 	DESIRED		CURRENT		READY 	AGE
+		nginx-deploy-78d8bf4fd7 	1	1	1	94s
+		[rootk8s-master deployments]# kubectlget po
+		NAME 	READY 	STATUS 	RESTARTS 	AGE
+		nginx-deploy-78d8bf4fd7-wzvml 	1/1 	Running 	0 	119s
+StatefulSet
+	是一种控制器，用于管理运行在其下的一组有状态的Pod。与Deployment不同，StatefulSet旨在管理有唯一标识和固定网络标识符（通常是有状态应用程序）的Pod。对于这些有状态的Pod来说，它们通常需要稳定的网络标识符（例如DNS），并且需要以特定顺序启动和停止。StatefulSet的设计目标是为了解决这些问题。它提供了有序、高可用性的部署有状态应用程序的功能，这在许多情况下非常重要，例如数据库和缓存层。该功能是通过设置一些规则和约束条件来实现的，这些规则和约束条件包括：使用持久卷和DNS名称，有序的Pod命名和状态维护。
+	比如集群中只想要更新部分机器,就可以使用
+		[rootak8s-master statefulset]# kubectl edit sts web
+			...
+			updateStrategy:
+			  rollingUpdate:
+			    partition: 1 // 这个是用来判断所有pod编号大于1的会使用新配置生效
+			  type: RolingUpdate
+			...
+		[rootak8s-master statefulset]# kubectl describe sts web
+			// 就可以看到是根据序号来扩容/收缩pod的
+			...
+			delete Podweb-0 in StatefulSet web successful
+			create Podweb-0 in StatefulSet web successful
+			delete Podweb-4 in StatefulSet web successful
+			...
+Deployment
+	是一个高级别的Kubernetes API对象，是管理Pod的推荐方式。与RS不同，Deployment可以自动管理Pod的部署和升级，支持滚动更新、蓝绿部署和回滚操作，并且可以轻松升级Pod的镜像版本。Deployment对象还可以管理RS对象。因此，Deployment可以滚动升级Pod而不会中断应用程序提供服务，而RS只能更改Pod的数量。
+ReplicaSet（RS）
+	用于创建和管理Pod的副本数量，用于容错、负载均衡和水平扩展应用程序，确保Pod的数量始终保持在所需的范围内。它适用于较低级别的Pod编排。但是，RS无法定义升级策略，因此无法确保无宕机的应用程序更新。因此，Deployment通过在RS之上引入更高层级的抽象，为应用程序提供了易于管理的部署、升级和回滚策略，并自动维护与负载均衡的关系。
+为什么还要使用RS	
+	1.Kubernetes中的Deployment是一个控制器，它的主要作用是为应用程序提供一个便捷的管理和维护方式。在Deployment中可以指定应用程序所需要的Pod数量、镜像和运行参数等信息，然后由Deployment控制器来负责创建、更新和删除相关的Pod。
+	2.为了实现这一功能，Deployment实际上是基于ReplicaSet（RS）来实现的。RS是Kubernetes中另一个控制器，它的作用是为Pod提供水平伸缩和失效转移的功能。Deployment通过调用RS来实现Pod的创建、更新和删除，并且利用RS的自动调整功能，保证Pod的数量始终符合指定值。
+	3.因此，Deployment的作用是为应用程序提供一个抽象层，使得应用程序不需要关心底层的Pod和RS，而只需要专注于自己的业务逻辑。Deployment利用RS来管理底层的Pod，让应用程序能够更好地适应Kubernetes的动态环境，并且能够实现更加高效的应用程序管理。
+弹性扩容/收缩HPA
+	1.通过观察 pod 的cpu、内存使用率或自定义 metrics 指标进行自动的扩容或缩容 pod 的数量
+	2.通常用于 Deployment，不适用于无法扩/缩容的对象，如DaemonSet
+	3.控制管理器每隔30s (可以通过-horizontal-pod-autoscaler-syncperiod修改)查询metrics的资源使用情况
+	使用
+		kubectl autoscale deploy <deploy_name>--cpu-percent=20 --min=2--max=5 // 这个20%的比率,是在Deployment中spec.template.spec.containers.resource.limits|requests来衡量的
+			spec: # pod 期望信息
+			  containers: # pod 的容器
+			  - image: nginx:1.7.9 # 饶像
+			    imagePullPolicy: IfNotPresent # 拉取策略
+			    name: nginx # 容器名称
+			    resources :
+			      limits:
+			        cpu: 200m
+			        memory: 128Mi
+				  requests :
+				  	cpu: 100m
+					memory: 128Mi
+		通过 kubectl get hpa 可以获取 HPA 信息
 Controller
 	与Pod的关系
 		1.Pod通过Controller实现应用的运维,比如伸缩,滚动升级...
@@ -479,6 +623,7 @@ Controller
 		kubectl set image deployment/nginx-deployment nginx=nginx:1.9.1(假如我们现在想要让nginx pod使用nginx:1.9.1的镜像来代替原来的nginx:1.7.9的镜像)
 		kubectl edit deployment/nginx-deployment(我们可以使用edit命令来编辑Deployment修改.spec.template.spec.containers[0].image将nginx:1.7.9改写成nginx:1.9.1)
 Service
+	<span class="image featured"><img src="{{ 'assets/images/other/k8s_service.jpg' | relative_url }}" alt="" /></span>
 	目的
 		1.防止Pod失联(服务发现)
 			Pod升级/降级等操作,Pod对应的IP地址会发生变化,所以为了知道Pod的地址,需要一个注册中心(Pod与IP地址的映射关系),这里就是Service来实现的
@@ -497,17 +642,26 @@ Service
 			对外访问应用使用/公有云
 	声明
 		配置将创建一个名称为 “my-service” 的 Service 对象，它会将请求代理到使用 TCP 端口 9376，并且具有标签 "app=MyApp" 的 Pod 上。 这个 Service 将被指派一个 IP 地址（通常称为 “Cluster IP”），它会被服务的代理使用
-			kind: Service
-			apiVersion: v1
+			apiversion: v1
+			kind: Service #资源类型为 Service
 			metadata:
-			  name: my-service
+			  name: nginx-svc # Service 名字
+			  labels:
+			    app: nginx # Service 自己本身的标签
 			spec:
-			  selector:
-			    app: MyApp
-			  ports:
-			    - protocol: TCP
-			      port: 80
-			      targetPort: 9376
+			  selector: # 匹配哪些 pod 会被该 service 代理
+			    app: nginx-deploy # 所有匹配到这些标签的 pod 都可以通过该 service 进行访问
+			  ports: # 端口快射
+			  - port: 80 # service 自己的端口，在使用内网 i 访问时使用
+			    targetPort: 80 # 月标 pod 的端口
+			    protocol: TCP # 端口绑定协议TCP(默认),UDP,SCTP
+			    name: web #为端口起个名
+			  type: NodePort.# 随机启动一个端口 (30000-32767)，映射到 ports 中的端口，该端口是直接绑定在 node 上的，几集群中的每个 node 都会绑定这个端口
+			  				 # 也可以用于将服务暴露给外部访问，但是这种方式实际生产环境不推荐，效率较低，而且 Service 是四层负载
+	其中的type:
+		1.NodePort,节点的Ip地址来访问Node的内部
+		2.ClusterIp,集群内部使用,默认方式
+		3.ExternalName,根据域名访问
 ResourceQuota
 	当多个团队、多个用户共享使用K8s集群时，会出现不均匀资源使用，默认情况下先到先得，这时可以通过ResourceQuota来对命名空间资源使用总量做限制，从而解决这个问题。
 		apiVersion: v1
@@ -538,7 +692,7 @@ ResourceQuota
 			metadata:
 			  name: nginx-statefulset
 			...
-部署守护进程
+DaemonSet部署守护进程
 	就是运行在node中的pod,新加入的node中运行也会有这个pod
 	apiVersion: apps/v1
 		kind: DaemonSet // 守护进程模式
@@ -765,13 +919,13 @@ ConfigMap
 		3.准入控制
 			1.就是准入控制器的列表,如果有则请求内容哪个,如果没有则拒绝
 Ingress
-	普通是通过NodePort来实现对外暴露端口,然后通过IP:端口进行访问
+	(理解上可以类似Nginx)普通是通过NodePort来实现对外暴露端口,然后通过IP:端口进行访问
 	(每个节点上都会起到端口,在访问的时候通过热和节点IP:端口实现访问)
 	ingress作为统一入口,有service关联一组pod
 	工作流程
 		ingress入口->service(根据不同的域名去找不同的pod)->pod
 	注
-		ingress并不是k8s自带功能,需要手动安装
+		ingress并不是k8s自带功能,属于更高层的抽象(比如可以使用nginx来实现),需要手动安装
 	安装
 		1.部署ingress Controller
 			文档资料中的ingress-controller.yaml
@@ -1073,22 +1227,29 @@ Ingress
 				    type: Container
 			可以使用kubectl get pods -n ingress-nginx来查看
 		2.创建ingress规则
-			apiVersion: networking.k8s.io/v1beta1
-			kind: Ingress
+			apiVersion: networking.k8s.io/v1
+			kind: Ingress # 资源类型为 Ingress
 			metadata:
-			  name: example-ingress
-			spec:
-			  rules:
-			  - host: example.ingredemo.com // 修改为自己的域名1
+			  name: wolfcode-nginx-ingress
+			  annotations : 
+			    kubernetes.io/ingress.class: "nginx"
+			spec :
+			  rules: # ingress 规则配置，可以配置多个
+			  - host: k8s.wofcode.cn # 域名配置，可以使用通配符 *
 			    http:
-			      paths:
-			      - path: / // 可以配置不同域名不同目录访问不同的service
-			        backend:
-			          serviceName: web // 与上面的对应
-			          servicePort: 80
+			      paths: # 相当于 nginx 的 Location 配置，可以配置多个
+			      - pathType: Prefix
+			      		# 按照路径类型进行匹配,有三种:
+			      		# 1.ImplementationSpecific 需要指定 IngressClass,具体匹配规则以 IngresClas 中的规则为准
+			      		# 2.Exact:精确匹配上，URL需要与path完全匹配上,且区分大小写的。
+			      		# 3.Prefix: 以 / 作为分隔符来进行前缀匹配
+			      	backend:
+			          service
+			          	name: nginx-svc # 代理到哪个 
+			          	port: 80 # service 的端口
+			        path: /api # 等价于 nginx 中的 Location 的路径前缀匹配
 			  - host: example.ingredemo.com // 修改为自己的域名2
-			    ...
-
+			  ...
 helm
 	介绍
 		是k8s的包管理工具(如Linux中的yum/apt,可以方便的将打包好的yaml部署到k8s上)

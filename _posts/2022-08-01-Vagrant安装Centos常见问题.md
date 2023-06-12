@@ -32,7 +32,7 @@ yum源
 	1. 查看yum源信息:
 	    yum repolist
 	2. 安装base reop源
-	     cd /etc/yum.repos.d
+	    cd /etc/yum.repos.d
 	3. 接着备份旧的配置文件
 	   sudo mv CentOS-Base.repo CentOS-Base.repo.bak
 	4. 下载阿里源的文件
