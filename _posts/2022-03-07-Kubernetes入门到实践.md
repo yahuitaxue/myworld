@@ -8,6 +8,7 @@ category: Linux
 书名：《-》
 
 <pre style="text-align: left;">
+	<span class="image featured"><img src="{{ 'assets/images/other/k8s_入门到微服务项目实战.xmind' | relative_url }}" alt="" /></span>
 简介
 	1.开源的容器化集群管理系统
 	2.可进行容器化应用部署
@@ -439,26 +440,77 @@ Pod
 		2.Scheduler监听API Server是否有新建的Pod,如果有新的Pod,则API Server通知Scheduler,Scheduler读取etcd中Pod信息并通过调度算法分配到某个Node中去,并将调度结果通知API Server,API Server将调度信息写入etcd中(etcd通知API Server写入结果,同时API Server通知Scheduler新的Pod分配成功)
 		3.在node节点中,kubelet监听API Server,如果有分配给自己的Pod则会收到通知,并从etcd中读取Pod信息,接着通过Docker创建容器(Docker创建完成后通知Kubelet),Kubelet就通知API Server更新Pod信息,API Server收到更新信息就更新etcd中Pod的信息(etcd更新后通知API Server,API Server通知Kubelet更新完成)
 	Pod调度
-		1.Pod的资源限制:根据request找到足够node节点进行调度
-		2.节点选择器标签影响Pod调度(上面代码有示例)
-			添加标签命令(kubectl node node1 env_role=product)
-			env_role:有点像对接点进行分组(比如node1,node2表示订单分组,node2,node3表示商品分组)
-		3.污点
-			给某个节点加上污点,就相当于这个节点不准备使用/准备下线操作(可参考kubectl taint --help)
-				kubectl taint node [node名称] key(自己取的,参考上面代码示例)=values(自己取的,参考上面代码示例):污点的三个值
-					NoSchedule:一定不被调度
-					PreferNoSchdule:尽量不被调度
-					NoExecute:不会调度,并且还会驱逐Node已有Pod
-			删除污点
-				kubectl taint node [node名称] key(自己取的,参考上面代码示例):污点的三个值- // 最后有一个"-"表示去掉这个污点
-			污点容忍
-				在yaml中增加,这样,即使node设置不会被调用,也有可能会被调用
-					spec:
-					  tolerations:
-					  - key: "自定义的key"
-					    operator: "Equal"
-					    value: "自定义的value"
-					    effect: "污点的三个值"
+		污点/容忍(就是排他)
+			1.Pod的资源限制:根据request找到足够node节点进行调度
+			2.节点选择器标签影响Pod调度(上面代码有示例)
+				添加标签命令(kubectl node node1 env_role=product)
+				env_role:有点像对接点进行分组(比如node1,node2表示订单分组,node2,node3表示商品分组)
+			3.污点/容忍
+				给某个节点加上污点,就相当于这个节点不准备使用/准备下线操作(可参考kubectl taint --help)
+					kubectl taint node [node名称] key(自己取的,参考上面代码示例)=values(自己取的,参考上面代码示例):污点的三个值
+						NoSchedule:不被调度
+						PreferNoSchdule:尽量不被调度
+						NoExecute:不被调度,并且还会驱逐Node已有Pod
+				删除污点
+					kubectl taint node [node名称] key(自己取的,参考上面代码示例):污点的三个值- // 最后有一个"-"表示去掉这个污点
+				容忍(书写位置sepc.template.spec)
+					在yaml中增加,这样,就会针对性的忽略污点,从而也可以在master上执行
+						spec:
+						  tolerations:
+						  - key: "自定义的key"
+						    operator: "Equal" // 两个值:1.Equal全匹配key与value,2.Exist只比较key
+						    value: "自定义的value"
+						    effect: "污点的三个值,需要与污点对应"
+		亲和力(就是更倾向,是针对pod的)
+			节点node亲和力(书写位置sepc.template.spec下)
+				affinity:
+			      nodeAffinity:
+			        requiredDuringSchedulingIgnoredDuringExecution: # 硬亲和力,这个条件必须满足
+			          nodeSelectorTerms:
+			          - matchExpressions:
+			            - key: topology.kubernetes.io/zone
+			              operator: In # 类似SQL中的in(只要在values中的值即可)(In、NotIn、Exists、DoesNotExist、Gt 和 Lt)
+			              values:
+			              - antarctica-east1
+			              - antarctica-west1
+			        preferredDuringSchedulingIgnoredDuringExecution: # 软亲和力,这个条件满足则更加倾向
+			        - weight: 1
+			          preference:
+			            matchExpressions:
+			            - key: another-node-label-key
+			              operator: In
+			              values:
+			              - another-node-label-value
+			Pod亲和力(书写位置sepc.template.spec下)
+				apiVersion: v1
+				kind: Pod
+				metadata:
+				  name: with-pod-affinity
+				spec:
+				  affinity:
+				    podAffinity: # 亲和力
+				      requiredDuringSchedulingIgnoredDuringExecution:
+				      - labelSelector:
+				          matchExpressions:
+				          - key: security
+				            operator: In
+				            values:
+				            - S1
+				        topologyKey: topology.kubernetes.io/zone
+				    podAntiAffinity: # 反亲和力
+				      preferredDuringSchedulingIgnoredDuringExecution:
+				      - weight: 100
+				        podAffinityTerm:
+				          labelSelector:
+				            matchExpressions:
+				            - key: security
+				              operator: In
+				              values:
+				              - S2
+				          topologyKey: topology.kubernetes.io/zone
+				  containers:
+				  - name: with-pod-affinity
+				    image: registry.k8s.io/pause:2.0
 Deployments
 	介绍
 		Deployments是一种声明式方式来管理Pods，它定义了ReplicaSets、Pod模板和更新策略，以确保应用程序的高可用性和容错性。Deployments可以帮助用户平滑地升级或回滚应用程序，同时提供了自动伸缩和滚动更新的能力。它也可以与Service连接，提供了对服务的自动发现和负载均衡。在Kubernetes中，Deployments是一种极为重要的资源类型，常用于部署生产环境中的应用程序。
@@ -739,27 +791,48 @@ job
 	      backoffLimit: 4 // 失败的话重启次数
 	   	(打印PI的值,可以使用kebuctl log pi-qpgff(pods的名字)查看日志,也就是打印输出的内容)
 	定时任务
-		apiVersion: apps/v1
-		kind: CronJob // 定时任务模式(每次执行完毕,都会生成一个pods,并且是(Completed)状态)
+	    apiversion: batch/v1
+	    kind: CronJob # 定时任务
 		metadata:
-		  name: hello
+		  name: cron-job-test # 定时任务名称
 		spec:
-		  schedule: "*/1 * * * *"
-		  jobTemplate:
+		  concurrencyPolicy: ALow # 并发调度策略: ALlow 允许并发调度，Forbid: 不允许发执行Replace: 如果之前的任务还设执行完，就直接执行新的，放弃上一个任务
+		  failedJobsHistoryLimit:  # 保留多少个失败的任多
+		  successfulJobsHistoryLimit: 3 # 保留多少个成功的任务
+		  suspend: false # 是否挂起任务，若为 true 则该任务不会执行
+		  startingDeadlineSeconds: 30 # 间隔多长时间检测失败的任务并重新执行，时间不能小于 10
+		  schedule:"* * * * *" # 调度饺略
+		  jobTemplate :
 		    spec:
-		      template:
-		        spec:
-	              containers:
-	              - name: hello
-	                image: busybox
-	                args:
-	                - /bin/sh
-	                - -c
-	                - date; echo Hello
-	              restartPolicy: OnFailure // 重启策略
+			  template:
+				spec:
+				  containers:
+				  - name: busybox
+				    image: busybox:1.28
+				    imagePullPolicy: IfNotPresent
+					command :
+					- /bin/sh
+					- -C
+					- date; echo Hello from the Kubernetes cluster
+					restartPolicy: OnFailure
+	IC(initContainers,容器运行前的初始化,位置:spec.template.spec下面)
+		...
+		spec
+		  initContainers:
+		  - command:
+		    - sh
+		    - -c
+		    - sleep 1;echo 'inited' >> /.init
+		    image: nginx
+		    imagePullPolicy: IfNotPresent
+		    name: init-test
+		...
 Secret
 	作用
 		加密数据存在etcd中,让Pod容器以挂载Volume方式进行访问
+		(重要:secret的加密默认是base64,所以并不是真正的加密,而是一种算法)
+		也可以使用证书或者其他第三方工具进行加密
+		 kubectl create secret generic my-secret --from-literal=foo=bar --dry-run=client -o yaml | kubeseal --format=yaml --cert=path/to/cert.pem > sealed-secret.yaml
 	场景
 		凭证(就是以环境变量的凡是来供其他Pod使用)
 	示例
@@ -821,6 +894,7 @@ ConfigMap
 	场景
 		配置文件
 	实例
+		可以看-h帮助,示例中有四种方式来创建
 		kubectl create configmap redis-config(名称) --from-file=redis.properties(这个是配置文件名称,内容就是简单键值对:host=123)
 		kubectl describe cm(就是configmap的缩写) redis-config
 		通过容器卷形式
@@ -834,12 +908,15 @@ ConfigMap
 	            image: busybox
 	            command: ["/bin/sh", "-c", "cat /etc/config/redis.properties"]
 	            VolumeMounts:
-	            - name: config-volume
-	              mountPaht: /etc/config
+	            - name: config-volume # 与下面定义的数据卷名称相同,表示加载哪一个
+	              mountPaht: /etc/config # 加载到容器的哪个目录中
 	          volumes:
 	            - name: config-volume
 	              configMap:
 	                name: redis-config // 这个是configMap的名字
+	                items: # (可选,如果不写,会加载所有kv的内容)
+	                - key: "configmap中的对应的key的别名,可与configmap文件中的key相同,也可不同"
+	                  path: "configmap中的对应的key名"
 	          restartPolicy: Never
 
     	通过变量形式
@@ -905,11 +982,11 @@ ConfigMap
 					metadata:
 					  namespace: roletest
 					  name: pod-reader
-					subjects:
+					subjects: # 指定主体是谁-User,
 					- kind: User
 					  name: abc
 					  apiGroup: rbac.authorization.k8s.io
-					roleRef:
+					roleRef: # 绑定目标
 					- kind: Role
 					  name: pod-reader
 					  apiGroup: rbac.authorization.k8s.io
@@ -1233,6 +1310,7 @@ Ingress
 			  name: wolfcode-nginx-ingress
 			  annotations : 
 			    kubernetes.io/ingress.class: "nginx"
+			    nginx.ingress.kubernetes.io/rewrite-target: /
 			spec :
 			  rules: # ingress 规则配置，可以配置多个
 			  - host: k8s.wofcode.cn # 域名配置，可以使用通配符 *
@@ -1264,6 +1342,8 @@ helm
 			将yaml打包,一些列用于描述k8s资源相关文件的集合
 		Release
 			基于Chart部署实体,一个Chart被Helm运行后将会生成对应一个release,将在k8s中创建出真实运行的资源对象
+		Config
+			包含了可以合并到打包的chart中的配置信息，用于创建一个可发布的对象.
 	安装
 		下载(官网:https://helm.sh/)
 		解压移动到/usr/bin目录下即可
@@ -1288,8 +1368,16 @@ helm
 		创建Chart
 			helm create mychart(chart名)
 			(创建后可进入目录查看)
+		查看
+			helm list
 		如果修改了内容,需要更新
 			helm upgrade chart名称
+		查看安装版本
+			helm history redis(chart名)
+		回滚
+			helm rollback 2(回滚的版本,不写表示回滚到上个版本)
+		卸载
+			helm delete chart名称 (PVC不会自动删除,可以手动 kubectl delete pvc pvc名称来删除)
 	文件
 		Chartyaml:当前chart属性配置信息
 		templates:编写yaml文件放到这个目录中
@@ -1319,66 +1407,112 @@ helm
 			  template:
 			  ...
 持久化
-	1.nfs(通过网络存储)(挂载服务器/k8s服务器都需要安装)
+	1.HostPath(与主机共享目录，加载主机中的指定目录到容器中)
+		apiVersion: V1
+		kind: Pod
+		metadata:
+		  name: test-volume-pd
+		spec:
+		  containers:
+		  - image: nginx
+		    name: nginx-volume
+		    volumeMounts :
+		    - mountPath: /test-pd # 挂载到容器的哪个目录
+		      name: test-volume # 挂载哪个 volume
+		  volumes :
+		    - name: test-volume 加载主机中的指定目录到容器中
+		      hostPath: # 与主机共享目录
+		        path: /data # 节点中的目录
+		        type: DirectoryorCreate # 检查类型，在挂载前对挂载目录做什么检查换作，有多种选项，默认为空字符串，不做任何检布
+	2.nfs(通过网络存储)(挂载服务器/k8s服务器都需要安装)
 		安装(yum -y install nfs-utils)
 		配置(vim /etc/exports)
-			/data/nfs(挂载路径) *(rw,no_root_squash)(路径权限)
+			/data/nfs(挂载路径) 192.168.33.0/24(rw,no_root_squash)(路径访问权限-不限制可以写*(路径读写权限))
 		启动(systemctl start nfs)
 		使用(yaml文件挂载路径使用)
 		spec:
 			containers:
 			- name: nginx
 			volumeMounts:
-			- name: wwwroot
+			- name: ca-certs
 			  moutPath: /usr/share/nginx/html // 挂载的路径
 			volumes:
 			  - name: ca-certs
 			    nfs:
 			      server: 192.168....(挂载服务器IP地址)
 			      path: /data/nfs (挂载路径)
-	2.PV和PVC(就是相当于在nfs中又加了一个中间件)
-		PV:对存储资源进行抽象,对外提供可以调用的地方(生产者)
-		PVC:调用(消费者)
+	3.PV和PVC(就是相当于在nfs中又加了一个中间件)
 		流程:
 			应用调用PVC,PVC中封装了PV的信息(IP,路径),PV实现数据存储(存储容量,匹配模式等)
-		使用:
-			(PVC)
+		PV:对存储资源进行抽象,对外提供可以调用的地方(生产者)
+			声明
+		        (PV)
+		        apiVersion: v1
+				kind: PersistentVolume # 描述创建对象为PV
+				metadata:
+				  name: my-pv # PV名称
+				spec:
+		          capacity: # 容量配置
+		            storage: 5Gi # PV的容量
+		          volumeMode: Filesystem # 存储类型为文件系统
+		          accessModes: # 访问模式:ReadWriteOnce,ReadWriteMany,ReadOnlyMany
+		            - ReadWriteMany
+		          persistentVolumeReclaimPolicy: ReLycle # 回收馈略
+		          storageClassName: slow # 创建 PV 的存储类名，需要与 pvc 的相同
+				  mountOptions: # 加载配置
+				  - hard
+				  - nfsvers=4.1
+		          nfs:
+			        server: 192.168....(挂载服务器IP地址)
+			        path: /data/nfs (挂载路径)
+			列表
+				[rootak8s-master volumes]# kubectl get pv
+					NAME 	CAPACITY 	ACCESS_MODES 	RECLAIM_POLICY 	STATUS 	CLAIM 	STORAGECLASS 	REASON 	AGE
+					pvo001	5Gi 		RWX 			Retain 			Available 		slow 					9s
+				(其中状态信息:Available: 空闲，未被绑定;Bound: 已经被 PVC 绑定;Released: PVC 被删除，资源已回收，但是 PV 未被重新使用;Failed: 自动回收失败)
+		PVC:调用(消费者)
+			声明
+				(PVC)
+		        apiVersion: V1
+		        kind: PersistentVolumeClaim # 资源类型为 PVC
+		        metadata:
+				  name: nfs-pvc
+				spec:
+				  accessModes:
+				    - ReadwriteMany # 权限需要与对应的 pv 相同
+				  volumeMode: Filesystem
+				  resources :
+				    requests :
+				      storage: 5Gi # 资源可以小于 pv 的，但是不能大于，如果大于就会匹配不到 pv
+				storageClassName: slow # 名称需要与对应的 pv 相同
+				# selector: # 使用选择器选择对应的 pv
+				#   matchLabels:
+				#     release: nstable
+				#   matchExpressions:
+				#      - [key: environment, operator: In, values: [dev]]
+		pod绑定PVC
+			(POD)
 			spec:
 			  containers:
 			  - name: nginx
-			  volumeMounts:
-			  - name: wwwroot
-			    moutPath: /usr/share/nginx/html // 挂载的路径
+			    volumeMounts:
+			    - name: wwwroot
+			      moutPath: /usr/share/nginx/html // 挂载的路径
 			  volumes:
 			  - name: wwwroot
-			    persistentVolumeClaim:
-			      claimName: my-pvc
-
-			---
-
-			apiVersion: apps/v1
-			kind: PersistentVolumeClaim
-			metadata:
-			  name: my-pvc
-			spec:
-	          accessModes:
-	            - name: ReadWriteMany // 读写权限
-	          resources:
-	            storage: 5Gi // 存储大小
-
-	        (PV)
-	        apiVersion: v1
-			kind: PersistentVolume
-			metadata:
-			  name: my-pv
-			spec:
-	          capacity:
-	            storage: 5Gi
-	          accessModes:
-	            - ReadWriteMany
-	          nfs:
-		        server: 192.168....(挂载服务器IP地址)
-		        path: /data/nfs (挂载路径)
+			    persistentVolumeClaim: # 关联PVC
+			      claimName: my-pvc #要关联到PVC的名称
+			...
+	4.SC
+		apiversion: storage.k8s.io/v1
+		kind: StorageClass
+		metadata:
+		  name: managed-nfs-storage# 外部制备器提供者，编写为提供者的名称
+		  provisioner: fuseim.pri/ifs
+		parameters :
+		  archiveOnDelete: "false"# 是否存档，false 表示不存档，会删除 oldPath 下面的数据，true 表示存档，会重命名路径
+		reclaimPolicy: Retain # 回收策略，默认为 Delete 可以配置为 Retain
+		volumeBindingMode: Immediate # 默认为 Immediate, 表示创建 PVC 立即进行绑定，只有 azuredisk 和 AWSelasticblockstore 支持其他值
 监控
 	prometheus
 		以HTTPS协议周期性抓取被监控组件状态
@@ -1528,4 +1662,125 @@ helm
 		kubectl get svc
 Web界面
 	Dashboard 是 Kubernetes 集群的通用的、基于 Web 的用户界面。 它使用户可以管理集群中运行的应用程序以及集群本身， 并进行故障排除。
+DEVOPS
+	1.Gitlab搭建
+		1.下载npm包并安装(npm -i 包名)
+		2.根据提示修改配置文件(configuration in /etc/gitlab/gitlab.rb file.)
+			(大致需要改的地方)
+			external_url:'ip地址:端口号' # 外部访问地址
+			gitlab_rails[time_zone] = Asia/Shanghai' # 时区
+			puma[worker_processes] = 2 # 节点数
+			sidekiq['max_concurrency'] = 8 # 最大并发数
+			postgresql['shared_buffers] ="128MB" # 缓存区大小
+			postgresql['max_worker_processes] = 4 # 最大进程数
+			prometheus_monitoring['enable] = false # 普罗米修斯是否开启
+		3.启动(gitlab-ctl reconfigure)
+		4.启动后根据提示查看密码,就可登录(root...)
+	2.Harbor搭建
+		1.下载后解压(如果有些配置需要修改,可以修改harbor.yml)
+		2.进入目录,检查docker-composer.yml(如果没有,需要执行目录中的prepare文件)
+		3.执行install.sh
+		(配置需要的用户密码,不用每次都修改配置文件,kubectl create secret docker-registry harbor-secret --docker-server=192.168.113.122:8858 --docker-username=admin --docker-password=wolfcode -n devops-test)
+		(使用harbor私人仓库docker会出现认证不通过,需要修改/etc/docker/daemon.json,来增加私人仓库的信任)
+	3.SonarQube搭建
+		(镜像代码分析工具,基础的代码审查)
+		1.主要是两个yaml文件
+			1.pgsql.yaml
+				apiVersion: apps/v1
+				kind: Deployment
+				metadata:
+				  name: postgres-sonar
+				spec:
+				  replicas: 1
+				  selector:
+				    matchLabels:
+				      app: postgres-sonar
+				  template:
+				    metadata:
+				      labels:
+				        app: postgres-sonar
+				    spec:
+				      containers:
+				      - name: postgres-sonar
+				        image: postgres:latest
+				        imagePullPolicy: IfNotPresent
+				        ports:
+				        - containerPort: 5432
+				        env:
+				        - name: POSTGRES_DB
+				          value: "sonar"
+				        - name: POSTGRES_USER
+				          value: "sonar"
+				        - name: POSTGRES_PASSWORD
+				          value: "sonar"
+				        volumeMounts:
+				          - name: data
+				            mountPath: /var/lib/postgresql/data
+				      volumes:
+				        - name: data
+				          persistentVolumeClaim:
+				            claimName: postgres-data
+
+				---
+				apiVersion: v1
+				kind: Service
+				metadata:
+				  name: postgres-sonar
+				  labels:
+				    app: "postgres-sonar"
+				spec:
+				  clusterIP: None
+				  ports:
+				  - port: 5432
+				    protocol: TCP
+				    targetPort: 5432
+				  selector:
+				    app: postgres-sonar
+			2.sonarqube.yaml
+				apiVersion: apps/v1
+				kind: Deployment
+				metadata:
+				  name: sonarqube
+				spec:
+				  replicas: 1
+				  selector:
+				    matchLabels:
+				      app: sonarqube
+				  template:
+				    metadata:
+				      labels:
+				        app: sonarqube
+				    spec:
+				      containers:
+				      - name: sonarqube
+				        image: sonarqube:k8s
+				        imagePullPolicy: IfNotPresent
+				        ports:
+				        - containerPort: 9000
+				        env:
+				        - name: SONARQUBE_JDBC_USERNAME
+				          value: "sonar"
+				        - name: SONARQUBE_JDBC_PASSWORD
+				          value: "sonar"
+				        - name: SONARQUBE_JDBC_URL
+				          value: "jdbc:postgresql://postgres-sonar:5432/sonar"
+
+				---
+				apiVersion: v1
+				kind: Service
+				metadata:
+				  name: sonarqube
+				  labels:
+				    app: "sonarqube"
+				spec:
+				  type: NodePort
+				  ports:
+				  - name: sonarqube
+				    port: 9000
+				    targetPort: 9000
+				    nodePort: 30003
+				    protocol: TCP
+				  selector:
+				    app: sonarqube
+		2.安装完毕后登录(admin/admin),进行配置
 </pre>
