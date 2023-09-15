@@ -1,8 +1,8 @@
 ---
 title: Kubernetes集群搭建
 author: Yahui
-layout: Other
-category: Other
+layout: other
+category: Ohters
 ---
 
 书名:《-》
