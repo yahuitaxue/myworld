@@ -42,9 +42,9 @@ category: Linux
 	Master组件:(做的事情都是管理操作)
 		1.kube-apiserver
 			外唯一的接口，提供http/https RESTfull API，即kubernetes API。所有的请求都通过这个接口进行通信。包括认证授权、数据校验以及集群状态更新。通过apiserver将集群状态信息持久化到ETCD中。默认端口为6443
-		2.scheduler
-			做Worker节点调度(选择Worker节点应用部署)
-		3.controller-manager
+		2.kube-scheduler
+			做Worker节点调度(选择Worker节点应用部署,如果Worker宕机,会将上面的部署到其他Worker上,保证系统可用性)
+		3.kube-controller-manager
 			资源协调控制(处理集群中常规后台任务,一个资源对应一个控制器(比如订单,用户等))
 			集群内部的管理控制中心，负责集群的Node，Pod副本，endpoint，namespace等的管理，当集群中的某个Node宕机，Controller Manager会及时发现此故障并快速修复，将集群恢复成预期的工作状态。
 		4.etcd(构建一个高可用的分布式键值(key-value)数据库)
@@ -81,7 +81,8 @@ category: Linux
 	4.StatefulSet
 		RC、Deployment、DaemonSet都是面向无状态的服务，它们所管理的Pod的IP、名字，启停顺序等都是随机的，而StatefulSet是什么？顾名思义，有状态的集合，管理所有有状态的服务，比如MySQL、MongoDB集群等。
 		StatefulSet本质上是Deployment的一种变体，在v1.9版本中已成为GA版本，它为了解决有状态服务的问题，它所管理的Pod拥有固定的Pod名称，启停顺序，在StatefulSet中，Pod名字称为网络标识(hostname)，还必须要用到共享存储。
-		在Deployment中，与之对应的服务是service，而在StatefulSet中与之对应的headless service，headless service，即无头服务，与service的区别就是它没有Cluster IP，解析它的名称时将返回该Headless Service对应的全部Pod的Endpoint列表。
+		在Deployment中，与之对应的服务是service，而在StatefulSet中与之对应的headless service，headless service，即无头服务，与service的区别就是它没有Cluster IP，解析它的名称时将返回该Headless Service对应的全部Pod的Endpoint列表。(service有服务地址,访问服务地址)
+			headless service(在定义上,与service相同,只是增加 Service.spec.ClusterIP:None而已,所以查看pod的时候,没有CLUSTER-IP地址,只能通过k8s内部dns进行访问)
 	5.schema
 		kubernetes资源管理的核心数据结构。由以前文章我们了解到 kubernetes 会将其管理的资源划分为 group/version/kind 的概念，我们可以将资源在内部版本和其他版本中相互转化，我们可以序列化和反序列化的过程中识别资源类型，创建资源对象，设置默认值等等。这些 group/version/kind 和资源 model 的对应关系，资源 model 的默认值函数，不同版本之间相互转化的函数等等全部由 schema 维护。可以说 schema 是组织 kubernetes 资源的核心
 部署
@@ -109,7 +110,7 @@ category: Linux
 		--image-repository registry.aliyuncs.com/google_containers \ // 修改镜像源
 		--kubernetes-version v1.23.4 \ // 安装的版本
 		--service-cidr=10.96.0.0/12 \
-		--pod-network-cidr=10.244.0.0/16 \
+		--pod-network-cidr=10.244.0.0/16 \ // 安装flannel网络插件,插件在集群初始化时指定pod地址,该值就是podSubnet的默认值,集群配置与网络组件中的配置需要一致
 		--ignore-preflight-errors=all // 因为虚拟机提示CPU不够,所以暂时忽略报错
 		初次安装出错:
 			kubeadm reset
@@ -158,6 +159,7 @@ kubectl语法
 		create 从file或stdin创建一个或多个资源。
 		delete 从file，stdin或指定label 选择器，names，resource选择器或resources中删除resources。
 		describe 显示一个或多个resources的详细状态。
+		diff 显示当前运行的与指定yaml文件之间的区别
 		edit 使用默认编辑器编辑和更新服务器上一个或多个定义的资源。
 		exec 对pod中的容器执行命令。
 		explain 获取各种资源的文档。例如pod，node，services等
@@ -168,7 +170,7 @@ kubectl语法
 		patch 使用strategic merge 补丁程序更新资源的一个或多个字段。
 		port-forward 将一个或多个本地端口转发到pod。
 		proxy 在Kubernetes API服务器运行代理。
-		replace 从file或stdin替换资源。
+		replace 依据yaml文件进行替换,不然使用apply的话,新yaml文件中没有的资源,并不会进行删除,只有在yaml中定义的资源才会更新。
 		rolling-update 通过逐步替换指定的replication controller及其pod来执行滚动更新。
 		run 在集群上运行指定的镜像。
 		scale 更新指定replication controller的大小。
@@ -178,6 +180,7 @@ yaml文件(资源清单文件)
 	使用
 		kubectl create -f ***.yaml
 	1.语法
+		(可以使用类似:kubectl explain deployment.spec.template,来查看下级命令语法)
 		1.通过缩进表示层级关系(不推荐使用tab键,通常使用两个空格)
 		2.字符后缩进一个空格(比如冒号,逗号)
 		3.使用"---"表示新的yaml文件开始
@@ -198,7 +201,7 @@ yaml文件(资源清单文件)
 		spec.template.metadata.labels字段用于指定模板创建的资源对象的标签。
 		spec.selector.matchlabels和spec.template.metadata.labels字段应该一致，以确保选择器能够检测到由模板创建和管理的所有Pod对象。
 	例
-		apiVersion: apps/v1 # deployment api 版本
+		apiVersion: apps/v1 # deployment api 版本(可以通过kubectl api-resources来查看版本)
 		kind: Deployment # 资源类型为 deployment
 		metadata: # 元信息
 		  labels: # 标签
@@ -220,7 +223,7 @@ yaml文件(资源清单文件)
 		    metadata: # pod 的元信息
 		      labels: # pod 的标
 		        app: nginx-deploy
-			spec: # pod 川以信后
+			spec: # pod 创建后
 			  containers: # pod 的容器
 			  - image: nginx:1.7.9 # 饶像
 			    imagePullPolicy: IfNotPresent # 拉取策略
@@ -568,7 +571,7 @@ ReplicaSet（RS）
 	2.通常用于 Deployment，不适用于无法扩/缩容的对象，如DaemonSet
 	3.控制管理器每隔30s (可以通过-horizontal-pod-autoscaler-syncperiod修改)查询metrics的资源使用情况
 	使用
-		kubectl autoscale deploy <deploy_name>--cpu-percent=20 --min=2--max=5 // 这个20%的比率,是在Deployment中spec.template.spec.containers.resource.limits|requests来衡量的
+		kubectl autoscale deploy <deploy_name>--cpu-percent=20 --min=2 --max=5 // 这个20%的比率,是在Deployment中spec.template.spec.containers.resource.limits|requests来衡量的
 			spec: # pod 期望信息
 			  containers: # pod 的容器
 			  - image: nginx:1.7.9 # 饶像
@@ -578,7 +581,7 @@ ReplicaSet（RS）
 			      limits:
 			        cpu: 200m
 			        memory: 128Mi
-				  requests :
+				  requests : // 设置自动扩容的时候,必须设置requests
 				  	cpu: 100m
 					memory: 128Mi
 		通过 kubectl get hpa 可以获取 HPA 信息
@@ -666,7 +669,7 @@ Controller
 		// 查看历史版本
 		kubectl rollout history deployment web
 		// 还原上一个版本
-		kubectl rollout undo deployment web
+		kubectl rollout undo deployment web // 不能连续undo回退某个更早的版本,因为每一次undo都是恢复将上并将上个版本删除当做新的版本,所以连续多次的undo,就只是在两个版本之间来回切换
 		// 还原到指定版本
 		kubectl rollout undo deployment web --to-revision=2
 	弹性(扩展10个)
@@ -691,7 +694,7 @@ Service
 		2.NodePort
 			对外访问应用使用(比如用户访问前端页面,通过暴露的IP地址与端口号访问)
 		3.LoadBalancer
-			对外访问应用使用/公有云
+			对外访问应用使用/公有云(等待一个外部的IP地址)
 	声明
 		配置将创建一个名称为 “my-service” 的 Service 对象，它会将请求代理到使用 TCP 端口 9376，并且具有标签 "app=MyApp" 的 Pod 上。 这个 Service 将被指派一个 IP 地址（通常称为 “Cluster IP”），它会被服务的代理使用
 			apiversion: v1
@@ -895,7 +898,11 @@ ConfigMap
 		配置文件
 	实例
 		可以看-h帮助,示例中有四种方式来创建
-		kubectl create configmap redis-config(名称) --from-file=redis.properties(这个是配置文件名称,内容就是简单键值对:host=123)
+		1.通过键值对的形式
+			kubectl create cm cm-name --from-literal Key1=Value1 --from-literal Key2=Value2(如果多个,就需要每个都加--from-literal)
+		2.通过文件键值对的形式
+			kubectl create cm cm-name --from-env-file 文件名称(该文件每行都是以Key=Value的形式,并且=号前不能有空格,=号后的空格会被当做Value)
+		kubectl create configmap redis-config(名称) --from-file 自定义Key值=redis.properties.conf(这个是配置文件名称,内容随意,结果就是将整个文件内容当做Value)
 		kubectl describe cm(就是configmap的缩写) redis-config
 		通过容器卷形式
 			apiVersion: apps/v1
