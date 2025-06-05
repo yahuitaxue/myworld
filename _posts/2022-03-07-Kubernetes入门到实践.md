@@ -902,8 +902,9 @@ ConfigMap
 			kubectl create cm cm-name --from-literal Key1=Value1 --from-literal Key2=Value2(如果多个,就需要每个都加--from-literal)
 		2.通过文件键值对的形式
 			kubectl create cm cm-name --from-env-file 文件名称(该文件每行都是以Key=Value的形式,并且=号前不能有空格,=号后的空格会被当做Value)
-		kubectl create configmap redis-config(名称) --from-file 自定义Key值=redis.properties.conf(这个是配置文件名称,内容随意,结果就是将整个文件内容当做Value)
-		kubectl describe cm(就是configmap的缩写) redis-config
+		3.通过变量文件形式
+			kubectl create configmap redis-config(名称) --from-file 自定义Key值=redis.properties.conf(这个是配置文件名称,内容随意,结果就是将整个文件内容当做Value)
+			kubectl describe cm(就是configmap的缩写) redis-config
 		通过容器卷形式
 			apiVersion: apps/v1
 			kind: Pod
@@ -926,7 +927,7 @@ ConfigMap
 	                  path: "configmap中的对应的key名"
 	          restartPolicy: Never
 
-    	通过变量形式
+    	4.通过资源配置形式
     		apiVersion: apps/v1
 			kind: ConfigMap
 			metadata:

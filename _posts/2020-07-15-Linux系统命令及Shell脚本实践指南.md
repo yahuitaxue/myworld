@@ -47,8 +47,7 @@ category: Linux
     0 0 06 * * * /bin/sh /backup/abc.sh
 	0 0 03 1 * * find /backup/db -name abc_`date -d"2 month ago" +"%Y-%m"`* | xargs rm -r
 	0 0 03 */2 * * cp -f /.../*.log /.../abc.yyh && echo "" > *.log
-	* * 23-3/1 * * * service httpd restart
-	#每天晚上23点到3点,每小时重启httpd进程
+	* * 23-3/1 * * * service httpd restart #每天晚上23点到3点,每小时重启httpd进程
 11.创建文件 touch
 12.删除文件 rm
 13.移动文件 mv
@@ -107,7 +106,7 @@ Shell(弱类型编程语言)
         与点号类似,source命令也可以读取并在当前环境中执行脚本,同事还可返回脚本中最后一个命令的返回状态
     5.别名:alias
         alias myOrders = 'shutdown -h now'
-        用于创建命令的别名,若直接输入命令,不带任何参数,则列出当前用户使用了别名的命令.(这就是为什么ll与 ls -l效果一样的原因),不过这样定义,只能在当前的Shell环境中有效,也就是说,重新登录后这个别名就消失了,为了确保永远生效,可以将该表木写到用户家目录中的.bashrc文件中.
+        用于创建命令的别名,若直接输入命令,不带任何参数,则列出当前用户使用了别名的命令.(这就是为什么ll与 ls -l效果一样的原因),不过这样定义,只能在当前的Shell环境中有效,也就是说,重新登录后这个别名就消失了,为了确保永远生效,可以将该别名写到用户家目录中的.bashrc文件中.
     6.删除别名:unalias
     7.任务前后台切换:bg,fg,jiobs
     8.&符号是把当前任务放入后台运行
